@@ -14,28 +14,35 @@ jobs:
   try-update-sdk:
     runs-on: ubuntu-latest
 
+    env:
+      NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
+
     steps:
       - uses: actions/checkout@v4
+
+      - uses: pnpm/action-setup@v4
+        with:
+          version: latest
+          run_install: false
 
       - uses: actions/setup-node@v4
         with:
           node-version: 20
-
-      - uses: pnpm/action-setup@v4
-        with:
-          run_install: true
+          cache: pnpm
 
       - env:
           S21_USERNAME: ${{ secrets.S21_USERNAME }}
           S21_PASSWORD: ${{ secrets.S21_PASSWORD }}
         run: |
+          pnpm install --frozen-lockfile
           pnpm build
 
       - id: diff
         run: |
           if [ "$(git add --all --dry-run ./src | head -1 | wc -l)" -eq 1 ]; then
             echo "changed=true" >> $GITHUB_OUTPUT;
-            echo "version=$(s21i static -n -s PRODUCT_VERSION | grep -P '(?<=^r__)\d+\.\d+\.\d+' -o)" >> $GITHUB_OUTPUT;
+            echo "version_full=$(pnpm s21i static -n -s PRODUCT_VERSION)" >> $GITHUB_OUTPUT;
+            echo "version=$(pnpm s21i static -n -s PRODUCT_VERSION | grep -P '(?<=^r__)\d+\.\d+\.\d+' -o)" >> $GITHUB_OUTPUT;
           else
             echo "changed=false" >> $GITHUB_OUTPUT;
           fi
@@ -43,12 +50,14 @@ jobs:
       - if: steps.diff.outputs.changed == 'true'
         env:
           VERSION: ${{ steps.diff.outputs.version }}
+          VERSION_FULL: ${{ steps.diff.outputs.version_full }}
         run: |
           git config user.name s21toolkit
           git config user.email s21toolkit@github.com
 
           git add ./src
-          git commit -m "feat(schema): $VERSION"
-          git tag "v$VERSION"
+          git commit -m "feat(schema): $VERSION_FULL"
 
-          pnpm release from-git
+          pnpm release "$VERSION"
+
+          pnpm publish --access public --no-git-checks
