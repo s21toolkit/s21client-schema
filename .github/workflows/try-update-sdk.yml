@@ -1,0 +1,54 @@
+name: Try Update SDK
+
+on:
+  schedule:
+    # Every day at 11:45
+    - cron: "45 11 * * *"
+
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  try-update-sdk:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - uses: pnpm/action-setup@v4
+        with:
+          run_install: true
+
+      - env:
+          S21_USERNAME: ${{ secrets.S21_USERNAME }}
+          S21_PASSWORD: ${{ secrets.S21_PASSWORD }}
+        run: |
+          pnpm build
+
+      - id: diff
+        run: |
+          if [ "$(git add --all --dry-run ./src | head -1 | wc -l)" -eq 1 ]; then
+            echo "changed=true" >> $GITHUB_OUTPUT;
+            echo "version=$(s21i static -n -s PRODUCT_VERSION | grep -P '(?<=^r__)\d+\.\d+\.\d+' -o)" >> $GITHUB_OUTPUT;
+          else
+            echo "changed=false" >> $GITHUB_OUTPUT;
+          fi
+
+      - if: steps.diff.outputs.changed == 'true'
+        env:
+          VERSION: ${{ steps.diff.outputs.version }}
+        run: |
+          git config user.name s21toolkit
+          git config user.email s21toolkit@github.com
+
+          git add ./src
+          git commit -m "feat(schema): $VERSION"
+          git tag "v$VERSION"
+
+          pnpm release from-git
