@@ -60,4 +60,7 @@ jobs:
 
           pnpm release "$VERSION"
 
-          pnpm publish --access public --no-git-checks
+  publish:
+    needs: try-update-sdk
+    if: needs.try-update-sdk.outputs.changed == 'true'
+    uses: ./.github/workflows/publish-pnpm-package.yml
