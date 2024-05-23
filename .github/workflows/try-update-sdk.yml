@@ -60,7 +60,10 @@ jobs:
 
           pnpm release "$VERSION"
 
-  publish:
-    needs: try-update-sdk
-    if: needs.try-update-sdk.outputs.changed == 'true'
-    uses: ./.github/workflows/publish-pnpm-package.yml
+      - if: steps.diff.outputs.changed == 'true'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          S21_USERNAME: ${{ secrets.S21_USERNAME }}
+          S21_PASSWORD: ${{ secrets.S21_PASSWORD }}
+        run: |
+          pnpm publish --access public --no-git-checks
