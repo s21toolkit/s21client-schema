@@ -27,7 +27,7 @@ const user = await client.api.getCurrentUser()
 Если нужны только запросы и своя реализация клиента:
 
 ```ts
-import { GraphQLClient } from "graphql-request
+import { GraphQLClient } from "graphql-request"
 import { S21_GQL_API_URL, UserAuthProvider, getAuthHeaders } from "@s21toolkit/auth"
 import { getSdk } from "@s21toolkit/client-schema"
 
