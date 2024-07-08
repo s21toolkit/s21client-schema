@@ -36804,6 +36804,8 @@ export type StudentQueries = {
   getMotivationBlockSections: Array<MotivationBlockSection>;
   /** S21. Запрос записей на проверку студента для выбранного диапазона */
   getMyCalendarBookings: Array<CalendarBooking>;
+  /** Получить участников моей коалиции */
+  getMyCoalitionMembers: Array<CoalitionMember>;
   /** Получение списка групп, в которые приглашен студент */
   getMyInvitations: Array<GroupProjectInfo>;
   /**
@@ -37679,6 +37681,11 @@ export type StudentQueriesGetMotivationBlockSectionsArgs = {
 export type StudentQueriesGetMyCalendarBookingsArgs = {
   from: Scalars['DateTime']['input'];
   to: Scalars['DateTime']['input'];
+};
+
+
+export type StudentQueriesGetMyCoalitionMembersArgs = {
+  page?: InputMaybe<PagingInput>;
 };
 
 
@@ -51188,12 +51195,11 @@ export type UserTournamentWidget = {
   __typename?: 'UserTournamentWidget';
   /** Коалиция пользователя */
   coalitionMember?: Maybe<CoalitionMember>;
-  /**
-   * Получить участников моей коалиции
-   * если {page==null} то вернутся первые 20 участников
-   */
   getMyCoalitionMembers: Array<CoalitionMember>;
-  /** Последний турнир пользоввателя */
+  /**
+   * Последний турнир пользователя
+   * @deprecated Вынесено в StudentQueries из-за проблем с кэшированием
+   */
   lastTournament?: Maybe<GameTournament>;
   /** Результат участия в последнем прошедшем турнире (не удаляется после удаления турнира) */
   lastTournamentResult?: Maybe<UserTournamentResult>;
@@ -56092,17 +56098,15 @@ export const CalendarGetMyReviewsDocument = gql`
 export const CompetitionCoalitionGetMyCoalitionMembersDocument = gql`
     query competitionCoalitionGetMyCoalitionMembers($page: PagingInput) {
   student {
-    getUserTournamentWidget {
-      getMyCoalitionMembers(page: $page) {
-        user {
-          id
-          login
-          avatarUrl
-          userExperience {
-            level {
-              id
-              levelCode
-            }
+    getMyCoalitionMembers(page: $page) {
+      user {
+        id
+        login
+        avatarUrl
+        userExperience {
+          level {
+            id
+            levelCode
           }
         }
       }
@@ -58851,7 +58855,7 @@ export type CompetitionCoalitionGetMyCoalitionMembersQueryVariables = Exact<{
 }>;
 
 
-export type CompetitionCoalitionGetMyCoalitionMembersQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getUserTournamentWidget: { __typename?: 'UserTournamentWidget', getMyCoalitionMembers: Array<{ __typename?: 'CoalitionMember', user: { __typename?: 'User', id: string, login?: string | null, avatarUrl: string, userExperience?: { __typename?: 'UserExperience', level: { __typename?: 'ExperienceLevel', id: number, levelCode: number } } | null } }> } } | null };
+export type CompetitionCoalitionGetMyCoalitionMembersQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getMyCoalitionMembers: Array<{ __typename?: 'CoalitionMember', user: { __typename?: 'User', id: string, login?: string | null, avatarUrl: string, userExperience?: { __typename?: 'UserExperience', level: { __typename?: 'ExperienceLevel', id: number, levelCode: number } } | null } }> } | null };
 
 export type CompetitionCurrentCoalitionFragment = { __typename?: 'GameCoalition', id: string, name: string, avatarUrl: string, backgroundUrl: string, backgroundUrlBig: string, memberCount: number, color: string, masterAvatarImgUrl: string, currentTournament?: { __typename?: 'CoalitionTournament', points: number, tournament: { __typename?: 'GameTournament', name: string, timeStart: Date, timeEnd: Date } } | null, masterUser: { __typename?: 'User', login?: string | null } };
 
