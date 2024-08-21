@@ -351,6 +351,7 @@ export enum AcceleratorMetric {
 /** Этапы Акселератора */
 export enum AcceleratorMilestone {
   First = 'FIRST',
+  Fourth = 'FOURTH',
   Second = 'SECOND',
   Third = 'THIRD'
 }
@@ -428,6 +429,8 @@ export type AcceleratorMutations = {
    * @deprecated Под удаление. Использовать saveAcceleratorProfile
    */
   markRequestAsRead: JoinTeamRequest;
+  /** Перевод проекта на следующий этап */
+  projectTransferToNextStage: Scalars['String']['output'];
   /** Обновление баллов */
   refreshNtoScore: DefaultResponse;
   /** Отклонение события для участников, которые записались на него */
@@ -620,6 +623,11 @@ export type AcceleratorMutationsJoinToProjectArgs = {
 
 export type AcceleratorMutationsMarkRequestAsReadArgs = {
   requestId: Scalars['UUID']['input'];
+};
+
+
+export type AcceleratorMutationsProjectTransferToNextStageArgs = {
+  projectStageInput: ProjectStageInput;
 };
 
 
@@ -2238,6 +2246,7 @@ export type AggregatedSkillStudentRadarChart = {
   digitalSkillData: Array<StudentRadarChartBySkill>;
   /** Агрегированные данные по мягким навыкам */
   softSkillData: Array<StudentRadarChartBySkill>;
+  stageGroupId: Scalars['ID']['output'];
   testCompleteResults: Array<Maybe<IsSelfAssessmentTestComplete>>;
   testFactComplete: Scalars['Boolean']['output'];
 };
@@ -5064,6 +5073,8 @@ export type BreadCrumbsPlanItem = {
   courseItemName?: Maybe<Scalars['String']['output']>;
   /** Название курса */
   courseName?: Maybe<Scalars['String']['output']>;
+  /** Тип выполнения */
+  executionType?: Maybe<ModuleExecutionType>;
   /** Идентификатор плана */
   planId?: Maybe<Scalars['ID']['output']>;
   /** Идентификатор сущности в плане */
@@ -8744,6 +8755,15 @@ export type BusinessWidgetInfo = {
   businessType: BusinessTypeEnum;
 };
 
+/** S21. Занятые временные промежутки в календаре */
+export type BusyTimeInterval = {
+  __typename?: 'BusyTimeInterval';
+  /** Дата и время завершения */
+  end: Scalars['DateTime']['output'];
+  /** Дата и время начала */
+  start: Scalars['DateTime']['output'];
+};
+
 export type Calendar = {
   __typename?: 'Calendar';
   id: Scalars['ID']['output'];
@@ -10659,6 +10679,8 @@ export type Complaint = {
   screenshot: Scalars['String']['output'];
   /** Причины жалобы */
   selectedReasons: Array<ComplaintReason>;
+  /** Класс создателя жалобы */
+  stageGroup?: Maybe<Scalars['String']['output']>;
   /** Статус жалобы */
   status: ComplaintAndSystemErrorStatus;
   /** версия системы */
@@ -10680,6 +10702,36 @@ export enum ComplaintAndSystemErrorStatus {
   /** Не обработана */
   Unprocessed = 'UNPROCESSED'
 }
+
+export type ComplaintExportFilterInput = {
+  /** Фильтры по дате создания жалобы */
+  dateFrom?: InputMaybe<Scalars['DateTime']['input']>;
+  dateTo?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Фильтр по статусу жалоб */
+  filterStatus?: InputMaybe<ComplaintAndSystemErrorStatus>;
+  /** Фильтр по идентификатору модуля */
+  moduleId?: InputMaybe<Scalars['ID']['input']>;
+  /** Фильтр по идентификатору предмета */
+  subjectId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type ComplaintFilterInput = {
+  /** Фильтры по дате создания жалобы */
+  dateFrom?: InputMaybe<Scalars['DateTime']['input']>;
+  dateTo?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Фильтр по статусу жалоб */
+  filterStatus?: InputMaybe<ComplaintAndSystemErrorStatus>;
+  /** Фильтр по идентификатору модуля */
+  moduleId?: InputMaybe<Scalars['ID']['input']>;
+  /** Параметры пагинации */
+  paging?: InputMaybe<PagingInput>;
+  /** Фильтр по идентификатору предмета */
+  subjectId?: InputMaybe<Scalars['ID']['input']>;
+  /** Фильтр по идентификатору задания */
+  taskId?: InputMaybe<Scalars['ID']['input']>;
+  /** Строка поиска по почте и комментарию */
+  textSearch?: InputMaybe<Scalars['String']['input']>;
+};
 
 export type ComplaintInput = {
   /** браузер */
@@ -12154,6 +12206,8 @@ export type CourseCoverInformation = {
   finalPercentage: Scalars['Int']['output'];
   /** Кол-во успешных завершений курса */
   finishedCount: Scalars['Int']['output'];
+  /** ИД глобального курса */
+  globalCourseId?: Maybe<Scalars['ID']['output']>;
   /** Отображение кнопки для ручного завершения курса */
   isCourseCanBeFinished?: Maybe<Scalars['Boolean']['output']>;
   /** Возможно ли запустить повторную попытку выполнения курса */
@@ -12328,8 +12382,12 @@ export type CourseMutations = {
   retryLocalCourseSavingWithCurrentVersion: Scalars['Boolean']['output'];
   /** Откат локального курса до последней успешной версии */
   rollbackLocalCourseToLastSuccessVersion: Scalars['Boolean']['output'];
+  /** Сохранение настроек условий фильтрации для модуля (проекта, цели) в локальном курсе */
+  saveEvaluationRulesForLocalCourseGoal: Array<EvaluationRuleGroup>;
   /** Сохранение/обновление локального курса */
   saveLocalCourse: LocalCourse;
+  /** Сохранение параметров команды в модуле локального курса */
+  saveTeamSettingsInLocalCourseGoal: Scalars['Boolean']['output'];
 };
 
 
@@ -12368,9 +12426,33 @@ export type CourseMutationsRollbackLocalCourseToLastSuccessVersionArgs = {
 };
 
 
+export type CourseMutationsSaveEvaluationRulesForLocalCourseGoalArgs = {
+  conditionType: ConditionType;
+  evaluationRules: Array<EvaluationRuleGroupInput>;
+  localCourseGoalId: Scalars['ID']['input'];
+};
+
+
 export type CourseMutationsSaveLocalCourseArgs = {
   localCourse: LocalCourseInput;
 };
+
+
+export type CourseMutationsSaveTeamSettingsInLocalCourseGoalArgs = {
+  isMulticampusEnabled?: InputMaybe<Scalars['Boolean']['input']>;
+  localCourseGoalId: Scalars['ID']['input'];
+  teamSettings: TeamSettingsInput;
+};
+
+/** Статус публикации курса */
+export enum CoursePublishedStatus {
+  /** Все */
+  All = 'ALL',
+  /** Опубликован */
+  Published = 'PUBLISHED',
+  /** НЕ опубликован */
+  Unpublished = 'UNPUBLISHED'
+}
 
 export type CourseQueries = {
   __typename?: 'CourseQueries';
@@ -12378,14 +12460,27 @@ export type CourseQueries = {
   checkGroupProjectsInLocalCourse: Scalars['Boolean']['output'];
   /** Критериальный поиск локальных курсов */
   findLocalCoursesByCriteria: LocalCourseSearchResult;
+  /** Получить информацию о попытке прохождения курса */
+  getAttemptInfo: StudentCourseAttempt;
   /** Получить список классов доступных для назначения курса */
   getAvailableClassesForAssignmentToTheCourse: Array<AvailableClassForAssignmentCourse>;
   /** Получение статистики по попыткам прохождения курса студентом */
   getCourseAttemptStatistic?: Maybe<Array<Maybe<StudentCourseAttemptStatistic>>>;
+  /** Получение статистики по попыткам прохождения курса для определённого студента */
+  getCourseAttemptStatisticByStudent?: Maybe<Array<Maybe<StudentCourseAttemptStatistic>>>;
   /** Получение информации по обложке локального курса */
   getCourseCoverInformation: CourseCoverInformation;
+  /** Получение информации по обложке локального курса для определённого студента */
+  getCourseCoverInformationByStudent: CourseCoverInformation;
+  /**
+   * Получение списка модулей курса для дашборда, в зависимости от id глобального курса.
+   * Сортировка реализована только по полю localizedType - для идентичности с дашбордом по планам
+   */
+  getCourseModulesForDashboard: DashboardCourseModules;
   /** Получить информацию по ретраям курса студента */
   getCourseRetryInfo: StudentGoalRetryInfo;
+  /** Получить информацию по ретраям курса студента */
+  getCourseRetryInfoByStudent: StudentGoalRetryInfo;
   /**
    * -----------------------------Запросы админа-----------------------------
    *  Получить список глобальный курсов с учетом указанных фильтров
@@ -12400,10 +12495,14 @@ export type CourseQueries = {
    *  Получение информации по локальному курсу в окне Projects
    */
   getLocalCourseGoals: LocalCourseGoals;
+  /** Получение информации по локальному курсу в окне Projects для определённого студента */
+  getLocalCourseGoalsByStudent: LocalCourseGoals;
   /** Получить текущий статус по процессу сохранения локального курса */
   getLocalCourseS21SavingProgress: LocalCourseS21SavingProgress;
   /** Получение условий выполнения курса */
   loadCourseEvaluationRules: Array<StudentEvaluationRuleGroup>;
+  /** Получение условий выполнения курса для определённого студента */
+  loadCourseEvaluationRulesByStudent: Array<StudentEvaluationRuleGroup>;
   /** Получение списка проектов и количества в них студентов, которые ещё не закончили обучение */
   loadUnfinishedGoalsAndStudentCount: Array<GoalStudentsCount>;
   /** Валидация локального курса перед сохранением */
@@ -12421,6 +12520,11 @@ export type CourseQueriesFindLocalCoursesByCriteriaArgs = {
 };
 
 
+export type CourseQueriesGetAttemptInfoArgs = {
+  studentCourseAttemptId: Scalars['ID']['input'];
+};
+
+
 export type CourseQueriesGetAvailableClassesForAssignmentToTheCourseArgs = {
   className?: InputMaybe<Scalars['String']['input']>;
   courseId?: InputMaybe<Scalars['ID']['input']>;
@@ -12433,8 +12537,27 @@ export type CourseQueriesGetCourseAttemptStatisticArgs = {
 };
 
 
+export type CourseQueriesGetCourseAttemptStatisticByStudentArgs = {
+  localCourseId: Scalars['ID']['input'];
+  studentId: Scalars['UUID']['input'];
+};
+
+
 export type CourseQueriesGetCourseCoverInformationArgs = {
   localCourseId: Scalars['ID']['input'];
+};
+
+
+export type CourseQueriesGetCourseCoverInformationByStudentArgs = {
+  localCourseId: Scalars['ID']['input'];
+  studentId: Scalars['UUID']['input'];
+};
+
+
+export type CourseQueriesGetCourseModulesForDashboardArgs = {
+  globalCourseId: Scalars['ID']['input'];
+  paging?: InputMaybe<PagingInput>;
+  sorting?: InputMaybe<SortingField>;
 };
 
 
@@ -12443,7 +12566,14 @@ export type CourseQueriesGetCourseRetryInfoArgs = {
 };
 
 
+export type CourseQueriesGetCourseRetryInfoByStudentArgs = {
+  localCourseId: Scalars['ID']['input'];
+  studentId: Scalars['UUID']['input'];
+};
+
+
 export type CourseQueriesGetCoursesArgs = {
+  coursePublishedStatus?: InputMaybe<CoursePublishedStatus>;
   courseType?: InputMaybe<CourseType>;
   filterExceptCourses?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
   name?: InputMaybe<Scalars['String']['input']>;
@@ -12471,6 +12601,13 @@ export type CourseQueriesGetLocalCourseGoalsArgs = {
 };
 
 
+export type CourseQueriesGetLocalCourseGoalsByStudentArgs = {
+  localCourseId: Scalars['ID']['input'];
+  sortingFields: Array<SortingField>;
+  studentId: Scalars['UUID']['input'];
+};
+
+
 export type CourseQueriesGetLocalCourseS21SavingProgressArgs = {
   localCourseId: Scalars['ID']['input'];
 };
@@ -12478,6 +12615,12 @@ export type CourseQueriesGetLocalCourseS21SavingProgressArgs = {
 
 export type CourseQueriesLoadCourseEvaluationRulesArgs = {
   localCourseId: Scalars['ID']['input'];
+};
+
+
+export type CourseQueriesLoadCourseEvaluationRulesByStudentArgs = {
+  localCourseId: Scalars['ID']['input'];
+  studentId: Scalars['UUID']['input'];
 };
 
 
@@ -12863,6 +13006,25 @@ export type DailyTraffic = {
   periodAuthorizSDP: Scalars['String']['output'];
   /** Время посещения в кампусе (в секундах) */
   periodOnCampus: Scalars['String']['output'];
+};
+
+/** модель курса для dashboard */
+export type DashboardCourseModules = {
+  __typename?: 'DashboardCourseModules';
+  /** общее количество проектов в курсе */
+  count: Scalars['Int']['output'];
+  /** модули плана */
+  dashboardPlanItemModels: Array<Maybe<DashboardPlanItem>>;
+  /** автоматическая настройка весов */
+  isAutoWeightsSetting?: Maybe<Scalars['Boolean']['output']>;
+  /** признак оцениваемый ли курс */
+  isGradedCourse: Scalars['Boolean']['output'];
+  /** наименование курса */
+  name: Scalars['String']['output'];
+  /** процент выполнения */
+  percentageOfCompletion?: Maybe<Scalars['Int']['output']>;
+  /** xp */
+  pointTask?: Maybe<Scalars['Int']['output']>;
 };
 
 /** модель элемента плана для dashboard */
@@ -16502,6 +16664,7 @@ export enum FileExtensionEnum {
   Ev3 = 'EV3',
   Gif = 'GIF',
   Heic = 'HEIC',
+  Ipynb = 'IPYNB',
   Jpeg = 'JPEG',
   Jpg = 'JPG',
   Key = 'KEY',
@@ -16519,6 +16682,7 @@ export enum FileExtensionEnum {
   Png = 'PNG',
   Ppt = 'PPT',
   Pptx = 'PPTX',
+  Py = 'PY',
   Svg = 'SVG',
   Tiff = 'TIFF',
   Txt = 'TXT',
@@ -17524,13 +17688,15 @@ export type GitlabLink = {
   __typename?: 'GitlabLink';
   /** Наличие открытых Merge-request в проект */
   hasOpenedMR: Scalars['Boolean']['output'];
-  /** HTTP-ссылка для открытия в интерфейсе гитлаб */
+  /** HTTP-ссылка для открытия в интерфейсе гитлаб, если проект удален, то будет "" */
   httpsLink: Scalars['String']['output'];
-  /** Идентификатор проекта в гитлаб */
+  /** Идентификатор проекта в гитлаб, если проект удален, то будет -1 */
   id: Scalars['Int']['output'];
+  /** Удален ли этот проект */
+  projectDeleted: Scalars['Boolean']['output'];
   /** Токен для раннеров */
   runnersToken: Scalars['String']['output'];
-  /** SSH-ссылка для клонирования */
+  /** SSH-ссылка для клонирования, если проект удален, то будет "" */
   sshLink: Scalars['String']['output'];
 };
 
@@ -17649,6 +17815,8 @@ export type GitlabProjectLink = {
 
 /** Тип готовности импортированного проекта */
 export enum GitlabProjectLinksReadyToUseStatus {
+  /** проект удален в гитлабе */
+  Deleted = 'DELETED',
   /** импорт провален */
   Failed = 'FAILED',
   /** не готов */
@@ -17800,9 +17968,9 @@ export type GlobalCourse = {
 export type GlobalCourseGoal = {
   __typename?: 'GlobalCourseGoal';
   /** "Начать с ..." */
-  beginFrom: Scalars['Int']['output'];
+  beginFrom?: Maybe<Scalars['Int']['output']>;
   /** "Проверка" */
-  checkFrom: Scalars['Int']['output'];
+  checkFrom?: Maybe<Scalars['Int']['output']>;
   /** Тип выполнения */
   executionType?: Maybe<ModuleExecutionType>;
   /** Идентификатор цели глобального курса */
@@ -17820,9 +17988,9 @@ export type GlobalCourseGoal = {
   /** Какие периоды учитываются в проекте */
   periodSettings?: Maybe<PeriodSettings>;
   /** "Часы на проект" */
-  projectHours: Scalars['Int']['output'];
+  projectHours?: Maybe<Scalars['Int']['output']>;
   /** "Регистрация" */
-  signUpFrom: Scalars['Int']['output'];
+  signUpFrom?: Maybe<Scalars['Int']['output']>;
   /** Имя абстрактного глобального предмета */
   subjectName: Scalars['String']['output'];
 };
@@ -17830,9 +17998,9 @@ export type GlobalCourseGoal = {
 /** Модель ввода для целей глобального курса */
 export type GlobalCourseGoalInput = {
   /** "Начать с ..." */
-  beginFrom: Scalars['Int']['input'];
+  beginFrom?: InputMaybe<Scalars['Int']['input']>;
   /** "Проверка" */
-  checkFrom: Scalars['Int']['input'];
+  checkFrom?: InputMaybe<Scalars['Int']['input']>;
   /** Идентификатор цели глобального курса */
   globalCourseGoalId?: InputMaybe<Scalars['ID']['input']>;
   /** Идентификатор цели */
@@ -17844,9 +18012,9 @@ export type GlobalCourseGoalInput = {
   /** Какие периоды учитываются в проекте */
   periodSettings?: InputMaybe<PeriodSettings>;
   /** "Часы на проект" */
-  projectHours: Scalars['Int']['input'];
+  projectHours?: InputMaybe<Scalars['Int']['input']>;
   /** "Регистрация" */
-  signUpFrom: Scalars['Int']['input'];
+  signUpFrom?: InputMaybe<Scalars['Int']['input']>;
 };
 
 /** Результат поиска глобальных курсов по заданным фильтрам */
@@ -17981,15 +18149,11 @@ export type GlobalPlanMutations = {
   __typename?: 'GlobalPlanMutations';
   /** Сохранение настроек условий фильтрации для курса (группы проектов) в плане на класс */
   saveCourseEvaluationRulesForStageSubjectGroupPlan: Array<EvaluationRuleGroup>;
-  /** Сохранение настроек условий фильтрации для модуля (проекта, цели) в локальном курсе */
-  saveEvaluationRulesForLocalCourseGoal: Array<EvaluationRuleGroup>;
   /**
    * -----------------------------Мутации бизнес админа-----------------------------
    *  Сохранение настроек условий фильтрации для модуля (проекта, цели) в плане на класс
    */
   saveEvaluationRulesForStageSubjectGroupPlan: Array<EvaluationRuleGroup>;
-  /** Сохранение параметров команды в модуле локального курса */
-  saveTeamSettingsInLocalCourseGoal: Scalars['Boolean']['output'];
   /** Сохранение параметров команды в модуле плана на класс */
   saveTeamSettingsInStageSubjectGroupPlanGoal: Scalars['Boolean']['output'];
   /** Сохранение параметров команды в модуле плана на параллель */
@@ -18004,24 +18168,10 @@ export type GlobalPlanMutationsSaveCourseEvaluationRulesForStageSubjectGroupPlan
 };
 
 
-export type GlobalPlanMutationsSaveEvaluationRulesForLocalCourseGoalArgs = {
-  conditionType: ConditionType;
-  evaluationRules: Array<EvaluationRuleGroupInput>;
-  localCourseGoalId: Scalars['ID']['input'];
-};
-
-
 export type GlobalPlanMutationsSaveEvaluationRulesForStageSubjectGroupPlanArgs = {
   conditionType: ConditionType;
   evaluationRules: Array<EvaluationRuleGroupInput>;
   stageSubjectGroupPlanGoalId: Scalars['ID']['input'];
-};
-
-
-export type GlobalPlanMutationsSaveTeamSettingsInLocalCourseGoalArgs = {
-  isMulticampusEnabled?: InputMaybe<Scalars['Boolean']['input']>;
-  localCourseGoalId: Scalars['ID']['input'];
-  teamSettings: TeamSettingsInput;
 };
 
 
@@ -18748,13 +18898,13 @@ export type GroupProjectStatistics = {
   __typename?: 'GroupProjectStatistics';
   /** Количество команд, успешно завершивших выполнение проекта */
   acceptedTeams: Scalars['Int']['output'];
-  /** Количество команд, находящихся в стадии проверки проекто */
+  /** Количество команд, находящихся в стадии проверки проекта */
   evaluationTeams: Scalars['Int']['output'];
   /** Количество команд, неуспешно завершивших выполнение проекта */
   failedTeams: Scalars['Int']['output'];
   /** Количество команд, завершивших выполнение проекта */
   finishedTeams: Scalars['Int']['output'];
-  /** Количество команд, выполняющих проект и ещё не перешедщих в стадию проверки */
+  /** Количество команд, выполняющих проект и ещё не перешедших в стадию проверки */
   inProgressTeams: Scalars['Int']['output'];
 };
 
@@ -20354,6 +20504,17 @@ export enum LearningProgramStatus {
   PublicationInProgress = 'PUBLICATION_IN_PROGRESS'
 }
 
+export enum LearningStatusEnum {
+  /** Обучение успешно завершено */
+  Completed = 'COMPLETED',
+  /** Обучение завершено с ошибкой */
+  CompletionFailed = 'COMPLETION_FAILED',
+  /** Завершение обучения */
+  CompletionInProgress = 'COMPLETION_IN_PROGRESS',
+  /** Обучение начато */
+  Started = 'STARTED'
+}
+
 export enum LearningTypeEnum {
   /** Основное обучение */
   BaseLearning = 'BASE_LEARNING',
@@ -21331,10 +21492,10 @@ export type LocalCourseGoalInformation = {
   beginDate?: Maybe<Scalars['DateTime']['output']>;
   /** "Проверка" */
   checkDate?: Maybe<Scalars['DateTime']['output']>;
+  /** Максимальное количество баллов, которые мог набрать студент в курсе по указанному проекту */
+  courseGoalTotalPoint?: Maybe<Scalars['Int']['output']>;
   /** "Дедлайн" */
   deadlineDate?: Maybe<Scalars['DateTime']['output']>;
-  /** deadline в проекте глобального курса */
-  deadlineFree?: Maybe<Scalars['Boolean']['output']>;
   /** Описание цели */
   description: Scalars['String']['output'];
   /** Тип выполнения */
@@ -21347,10 +21508,14 @@ export type LocalCourseGoalInformation = {
   goalId: Scalars['ID']['output'];
   /** Название цели */
   goalName: Scalars['String']['output'];
+  /** статус проекта */
+  goalStatus?: Maybe<GoalStatus>;
   /** Просмотр контента */
   isContentAvailable: Scalars['Boolean']['output'];
   /** Идентификатор цели локального курса */
   localCourseGoalId: Scalars['ID']['output'];
+  /** Настройки периодов в проекте глобального курса */
+  periodSettings?: Maybe<PeriodSettings>;
   /** Часы на проект */
   projectHours: Scalars['Int']['output'];
   /** Количество использованных попыток выполнения */
@@ -21361,6 +21526,12 @@ export type LocalCourseGoalInformation = {
   signUpDate?: Maybe<Scalars['DateTime']['output']>;
   /** Статус цели */
   status: DisplayedGoalStatus;
+  /** Дата изменения статуса */
+  statusUpdateDate?: Maybe<Scalars['DateTime']['output']>;
+  /** Список попыток прохождения проекта */
+  studentGoalAttempts?: Maybe<Array<StudentGoalAttemptShortInfo>>;
+  /** ID проекта студента */
+  studentGoalId: Scalars['ID']['output'];
 };
 
 export type LocalCourseGoalInput = {
@@ -21428,13 +21599,13 @@ export type LocalCourseRules = {
   /** Какие периоды учитываются в проекте */
   periodSettings: PeriodSettings;
   /** "Начать с ..." */
-  ruleBeginFrom: Scalars['Int']['output'];
+  ruleBeginFrom?: Maybe<Scalars['Int']['output']>;
   /** "Проверка" */
-  ruleCheckFrom: Scalars['Int']['output'];
+  ruleCheckFrom?: Maybe<Scalars['Int']['output']>;
   /** "Часы на проект" */
-  ruleProjectHours: Scalars['Int']['output'];
+  ruleProjectHours?: Maybe<Scalars['Int']['output']>;
   /** "Регистрация" */
-  ruleSignUpFrom: Scalars['Int']['output'];
+  ruleSignUpFrom?: Maybe<Scalars['Int']['output']>;
 };
 
 /** Модель для отображения процесса сохранения локального курса */
@@ -21590,6 +21761,12 @@ export type MarkEntry = {
   markValue?: Maybe<Scalars['String']['output']>;
   periodName: Scalars['String']['output'];
   startDate?: Maybe<Scalars['Date']['output']>;
+};
+
+export type MarkHistory = {
+  __typename?: 'MarkHistory';
+  eJournalStudentMark?: Maybe<EJournalStudentMark>;
+  lesson?: Maybe<Lesson>;
 };
 
 /** Модель описывает асинхронную задачу на перевод классов в другой учебный год */
@@ -22292,6 +22469,8 @@ export type MilestoneReport = {
   grade?: Maybe<AcceleratorProjectGrade>;
   /** Список участников проекта */
   memberModelList?: Maybe<Array<Maybe<TeamMember>>>;
+  /** Этап */
+  milestone?: Maybe<Scalars['String']['output']>;
   /** Дата и время изменения */
   modifiedTs?: Maybe<Scalars['DateTime']['output']>;
   /** Идентификатор пользователя, который внес изменения */
@@ -22300,23 +22479,69 @@ export type MilestoneReport = {
   project: Project;
   /** Балл */
   score?: Maybe<Scalars['Int']['output']>;
+  /** Наименование ТБ */
+  terbank?: Maybe<Scalars['String']['output']>;
 };
 
 export type MilestoneReportFilter = {
+  /** Признак загрузки презентации */
+  addFile?: InputMaybe<Scalars['Boolean']['input']>;
   /** Дата ответа */
   answerDate?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Дата с загрузки презентации */
+  answerDateFrom?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Дата по загрузки презентации */
+  answerDateTo?: InputMaybe<Scalars['DateTime']['input']>;
   /** Строка поиска по имени ответа */
   answerName?: InputMaybe<Scalars['String']['input']>;
   /** Статус прохождения */
   grade?: InputMaybe<AcceleratorProjectGrade>;
+  /** Этап */
+  milestone?: InputMaybe<Scalars['String']['input']>;
   /** Строка поиска по имени проекта */
   nameSearch?: InputMaybe<Scalars['String']['input']>;
   /** Школа */
   orgUnitId?: InputMaybe<Scalars['UUID']['input']>;
+  /** Массив ID проектных потоков */
+  projectFlow?: InputMaybe<Array<InputMaybe<Scalars['UUID']['input']>>>;
   /** Проектный поток */
   projectFlowId?: InputMaybe<Scalars['UUID']['input']>;
+  /** Массив id проектов */
+  projectId?: InputMaybe<Array<InputMaybe<Scalars['UUID']['input']>>>;
+  /** Массив ID регионов проекта */
+  region?: InputMaybe<Array<InputMaybe<Scalars['UUID']['input']>>>;
   /** Балл */
   score?: InputMaybe<Scalars['Int']['input']>;
+  /** ID ТБ */
+  terbank?: InputMaybe<Array<InputMaybe<Scalars['UUID']['input']>>>;
+};
+
+export type MisprintExportFilterInput = {
+  /** Фильтры по дате создания жалобы */
+  dateFrom?: InputMaybe<Scalars['DateTime']['input']>;
+  dateTo?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Фильтр по статусу жалоб */
+  filterStatus?: InputMaybe<ComplaintAndSystemErrorStatus>;
+  /** Фильтр по идентификатору модуля */
+  moduleId?: InputMaybe<Scalars['ID']['input']>;
+  /** Фильтр по идентификатору предмета */
+  subjectId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type MisprintFilterInput = {
+  /** Фильтры по дате создания жалобы */
+  dateFrom?: InputMaybe<Scalars['DateTime']['input']>;
+  dateTo?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Фильтр по статусу жалоб */
+  filterStatus?: InputMaybe<ComplaintAndSystemErrorStatus>;
+  /** Фильтр по идентификатору модуля */
+  moduleId?: InputMaybe<Scalars['ID']['input']>;
+  /** Параметры пагинации */
+  paging?: InputMaybe<PagingInput>;
+  /** Фильтр по идентификатору задания */
+  taskId?: InputMaybe<Scalars['ID']['input']>;
+  /** Строка поиска */
+  textSearch?: InputMaybe<Scalars['String']['input']>;
 };
 
 /** Причина ошибки в тексте задания */
@@ -22363,8 +22588,48 @@ export type MisprintReport = {
   userRole?: Maybe<Roles>;
 };
 
+/** Сообщение пользователя об ошибке в тексте задания */
+export type MisprintReportBtc = {
+  __typename?: 'MisprintReportBTC';
+  /** Школа пользователя. */
+  School?: Maybe<School>;
+  /** Исправление, которое предложил пользователь. */
+  correctText: Scalars['String']['output'];
+  /** Дата и время сообщения об ошибке в тексте в UTC. */
+  createTs: Scalars['DateTime']['output'];
+  /** Комментарий исполнителя */
+  executorComment?: Maybe<Scalars['String']['output']>;
+  /** Идентификатор сообщения */
+  id: Scalars['ID']['output'];
+  /** В каком модуле содержится ошибка в тексте или находится задание с ошибкой. */
+  module?: Maybe<StudyModule>;
+  /** url страницы, на которую была написана жалоба */
+  pageUrl?: Maybe<Scalars['String']['output']>;
+  /** Причины опечатки */
+  reasonIds: Array<Scalars['ID']['output']>;
+  /** путь к скриншоту в файлохранилище */
+  screenshotUrl?: Maybe<Scalars['String']['output']>;
+  /** Длина выделенного текста опечатки. */
+  selectionLength: Scalars['Int']['output'];
+  /** С какого символа начинается опечатка. */
+  selectionStart: Scalars['Int']['output'];
+  /** Класс создателя жалобы */
+  stageGroup?: Maybe<Scalars['String']['output']>;
+  /** Статус жалобы */
+  status: ComplaintAndSystemErrorStatus;
+  /** В каком задании содержится ошибка в тексте. */
+  task?: Maybe<Task>;
+  /** Текст в котором содержится ошибка в тексте. */
+  text: Scalars['String']['output'];
+  /** Пользователь, оставивиший сообщение об ошибку в тексте. */
+  user: User;
+  /** Роль пользователя. */
+  userRole?: Maybe<Roles>;
+};
+
 export type MisprintReportInput = {
   correctText: Scalars['String']['input'];
+  moduleId?: InputMaybe<Scalars['ID']['input']>;
   pageUrl?: InputMaybe<Scalars['String']['input']>;
   reasonIds: Array<Scalars['ID']['input']>;
   screenshotUrl?: InputMaybe<Scalars['String']['input']>;
@@ -26970,18 +27235,23 @@ export type ProjectRoleInput = {
   vacancyId?: InputMaybe<Scalars['UUID']['input']>;
 };
 
+export type ProjectStageInput = {
+  milestone: AcceleratorMilestone;
+  projectId: Array<InputMaybe<Scalars['UUID']['input']>>;
+};
+
 /** Статус проекта */
 export enum ProjectState {
   Closed = 'CLOSED',
   Opened = 'OPENED'
 }
 
-/** Статистика с информацией о студетах, связанных с проектом */
+/** Статистика с информацией о студентах, связанных с проектом */
 export type ProjectStatistics = {
   __typename?: 'ProjectStatistics';
   /** Количество студентов, успешно завершивших выполнение проекта */
   acceptedStudents: Scalars['Int']['output'];
-  /** Количество студентов, находящихся в стадии проверки проекто */
+  /** Количество студентов, находящихся в стадии проверки проекта */
   evaluationStudents: Scalars['Int']['output'];
   /** Количество студентов, неуспешно завершивших выполнение проекта */
   failedStudents: Scalars['Int']['output'];
@@ -26989,7 +27259,7 @@ export type ProjectStatistics = {
   finishedStudents: Scalars['Int']['output'];
   /** Статистика по групповому проекту */
   groupProjectStatistics?: Maybe<GroupProjectStatistics>;
-  /** Количество студентов, выполняющих проект и ещё не перешедщих в стадию проверки */
+  /** Количество студентов, выполняющих проект и ещё не перешедших в стадию проверки */
   inProgressStudents: Scalars['Int']['output'];
   /** Количество студентов, зарегистрированных на групповой проект */
   registeredStudents: Scalars['Int']['output'];
@@ -27979,15 +28249,21 @@ export type ResumeForStudent = {
   __typename?: 'ResumeForStudent';
   aboutMe: Scalars['String']['output'];
   avatarURL: Scalars['String']['output'];
+  eduDocs: Array<Maybe<EducationDocument>>;
   educationOrgName: Scalars['String']['output'];
+  email?: Maybe<Scalars['String']['output']>;
   projectId?: Maybe<Scalars['UUID']['output']>;
   projectName?: Maybe<Scalars['String']['output']>;
   projectRoleNames: Array<Maybe<Scalars['String']['output']>>;
   regionName: Scalars['String']['output'];
+  resumeFileName: Scalars['String']['output'];
   resumeId: Scalars['UUID']['output'];
+  resumeURL: Scalars['String']['output'];
   shortFio: Scalars['String']['output'];
   speciality: Scalars['String']['output'];
+  telegram?: Maybe<Scalars['String']['output']>;
   userId: Scalars['UUID']['output'];
+  vkontakte?: Maybe<Scalars['String']['output']>;
 };
 
 export type ResumeInput = {
@@ -28324,7 +28600,7 @@ export type S21Goal = {
   /** "Дедлайн" */
   deadlineDate?: Maybe<Scalars['DateTime']['output']>;
   /** Флаг, указывающий на игнорирование любых дедлайнов для модуля */
-  deadlineFree: Scalars['Boolean']['output'];
+  deadlineFree?: Maybe<Scalars['Boolean']['output']>;
   /** Тип выполнения */
   executionType?: Maybe<ModuleExecutionType>;
   /** Идентификатор цели */
@@ -28333,6 +28609,8 @@ export type S21Goal = {
   goalName: Scalars['String']['output'];
   /** Просмотр контента */
   isContentAvailable: Scalars['Boolean']['output'];
+  /** Какие периоды учитываются в проекте */
+  periodSettings?: Maybe<PeriodSettings>;
   /** "Регистрация" */
   signUpDate?: Maybe<Scalars['DateTime']['output']>;
 };
@@ -28378,6 +28656,7 @@ export enum S21NotificationEnum {
   S21EventUpcoming = 'S21_EVENT_UPCOMING',
   S21ExtraForVerifiable = 'S21_EXTRA_FOR_VERIFIABLE',
   S21ExtraForVerifier = 'S21_EXTRA_FOR_VERIFIER',
+  S21GitlabTaskUpdated = 'S21_GITLAB_TASK_UPDATED',
   S21GroupProjectDisbandmentTeamAvto = 'S21_GROUP_PROJECT_DISBANDMENT_TEAM_AVTO',
   S21GroupProjectDisbandmentTeamModerator = 'S21_GROUP_PROJECT_DISBANDMENT_TEAM_MODERATOR',
   S21GroupProjectDisbandmentTeamTeamlead = 'S21_GROUP_PROJECT_DISBANDMENT_TEAM_TEAMLEAD',
@@ -28432,6 +28711,22 @@ export type S21NotificationReport = {
   totalCount: Scalars['Int']['output'];
   unreadCount: Scalars['Int']['output'];
 };
+
+/** S21. Тип выполнения модуля */
+export enum S21ProjectExecutionType {
+  /** Курс (используется S21) */
+  Course = 'COURSE',
+  /** Экзаменационный модуль (используется S21) */
+  Exam = 'EXAM',
+  /** Модуль/Проект экзаменационного теста (используется S21) */
+  ExamTest = 'EXAM_TEST',
+  /** Групповой проект (используется S21) */
+  Group = 'GROUP',
+  /** Индивидуальный проект (используется S21) */
+  Individual = 'INDIVIDUAL',
+  /** Модуль/Проект стажировка (используется S21) */
+  Internship = 'INTERNSHIP'
+}
 
 export enum S21RelatedObjectEnum {
   Award = 'AWARD',
@@ -28726,6 +29021,8 @@ export type Sc21BaTaskCheckQueries = {
   getAttemptWithChecksInfoById: AttemptWithChecks;
   /** S21. Получить подробную информацию об авто проверке */
   getAutoCheckReportDetailInfo: AutoCheckReportDetailInfo;
+  /** S21. Получение занятых промежутков времени для проверяемого и проверяющего при назначение доп. проверки */
+  getBusyTimeIntervals: Array<BusyTimeInterval>;
   /** S21. Запрос данных для подсчета разбалловки */
   getCountPointsInfo: CountInfo;
   /** S21. Получения отзыва сотрудника */
@@ -28765,6 +29062,14 @@ export type Sc21BaTaskCheckQueriesGetAttemptWithChecksInfoByIdArgs = {
 
 export type Sc21BaTaskCheckQueriesGetAutoCheckReportDetailInfoArgs = {
   autoCheckReportId: Scalars['ID']['input'];
+};
+
+
+export type Sc21BaTaskCheckQueriesGetBusyTimeIntervalsArgs = {
+  currentDateTime: Scalars['DateTime']['input'];
+  studentAnswerId: Scalars['ID']['input'];
+  verifierLogin: Scalars['String']['input'];
+  verifierSchoolId: Scalars['UUID']['input'];
 };
 
 
@@ -28894,8 +29199,13 @@ export type Sc21StudentTaskCheckMutations = {
   markFileSolutionPending: Array<StudyProcessFile>;
   /** S21. Пользователь отменил загрузку файла решения задания */
   markFileSolutionUploadCancelled: StudyProcessFile;
-  /** S21. Сохранить файл решения задания */
+  /**
+   * S21. Сохранить файл решения задания
+   * @deprecated Field no longer supported
+   */
   markFileSolutionUploaded: Array<StudyProcessFile>;
+  /** S21. Обновление статуса */
+  markFileSolutionUploadedStatus: Array<StudyProcessFile>;
   /** S21. Сохранить комментарий к ответу студента, для задания с платформенным решением */
   saveSolutionComment: StudentAnswerComment;
   /** S21. Сохранить результат опроса у студента */
@@ -28932,6 +29242,12 @@ export type Sc21StudentTaskCheckMutationsMarkFileSolutionUploadedArgs = {
 };
 
 
+export type Sc21StudentTaskCheckMutationsMarkFileSolutionUploadedStatusArgs = {
+  studyProcessFileIds: Array<Scalars['ID']['input']>;
+  taskId: Scalars['ID']['input'];
+};
+
+
 export type Sc21StudentTaskCheckMutationsSaveSolutionCommentArgs = {
   comment: Scalars['String']['input'];
   taskId: Scalars['ID']['input'];
@@ -28957,6 +29273,8 @@ export type Sc21StudentTaskCheckQueries = {
   getTaskSolutionType: TaskSolutionTypeEnum;
   /** S21. Получить видео в незавершенном статусе для переданного чеклиста, если есть */
   getVideoInNotFinalStatus?: Maybe<OnlineReviewVideo>;
+  /** S21. Доступен ли Open Api */
+  isOpenApiAllowed: Scalars['Boolean']['output'];
 };
 
 
@@ -29572,6 +29890,8 @@ export type School21Queries = {
   getExperiencePublicProfile?: Maybe<UserExperience>;
   /** S21. Публичный профиль студента. Получение списка завершенных проектов с датами завершения */
   getFinishedGoalsPublicProfile: Array<GoalFinished>;
+  /** Получение статистики по попыткам студента на модуле для студента */
+  getGoalAttemptStatisticByStudent?: Maybe<Array<Maybe<StudentGoalAttemptStatistic>>>;
   /** S21. Публичный профиль студента. Получение информации по ретраям проекта */
   getGoalRetryInfo: StudentGoalRetryInfo;
   /** S21. Публичный профиль студента. получение названия проекта */
@@ -29580,6 +29900,8 @@ export type School21Queries = {
   getHeatMapCampusCalendarTimeSlot: P2pHeatMapWithMean;
   /** S21. Получить данные для тепловой карты по статистике событий студента */
   getHeatMapEventsStudentStatistic: P2pHeatMapWithMedian;
+  /** S21 получить информацию по стажировке студента администратором */
+  getInternshipReviewDataInfoByStudent: InternshipStudentReviewInfo;
   /** S21. получение ссылки на приватный студенческий Gitlab проект по логину студента и идентификатору задачи */
   getLinkToPrivateStudentGitlabProjectByStudentLoginAndTaskId: GitlabLink;
   /** S21. Публичный профиль студента. Получение персонализированного учебного модуля */
@@ -29600,7 +29922,12 @@ export type School21Queries = {
   getProjectStatuses: Array<StudentProjectStatus>;
   /** Получение команды, в которой состоит пользователь, выполняющий групповой проект */
   getProjectTeamWithMembers?: Maybe<ProjectTeamWithMembers>;
-  /** В плане на класс есть проекты с дедлайнами */
+  /** В классе (в плане или назначенных на класс курсах) есть проекты с дедлайнами */
+  getS21ClassHasDeadline: Scalars['Boolean']['output'];
+  /**
+   * В плане на класс есть проекты с дедлайнами
+   * @deprecated use getS21ClassHasDeadline
+   */
   getS21ClassPlanHasDeadline: Scalars['Boolean']['output'];
   /** S21. Получить список заявок на расформирование команд на рассмотрении у пользователя */
   getS21CurrentTeamDisbandRequests: Array<CurrentTeamDisbandRequestInfo>;
@@ -29648,6 +29975,8 @@ export type School21Queries = {
   /** S21. Получить статистику по алгоритму выбора проверяющего */
   getStatisticBookingAttempt: Array<BookingAttemptStatistic>;
   getStudentByLogin?: Maybe<StudentAttributes>;
+  /** Получение попыток прохождения курса */
+  getStudentCourseFinalScoreByLoginAndGoalId: StudentCourseFinalScore;
   /** S21. Получение финального результата за проект */
   getStudentGoalFinalScoreByLoginAndGoalId: StudentGoalFinalScore;
   /**
@@ -29886,6 +30215,12 @@ export type School21QueriesGetFinishedGoalsPublicProfileArgs = {
 };
 
 
+export type School21QueriesGetGoalAttemptStatisticByStudentArgs = {
+  goalId: Scalars['ID']['input'];
+  studentId: Scalars['UUID']['input'];
+};
+
+
 export type School21QueriesGetGoalRetryInfoArgs = {
   goalId: Scalars['ID']['input'];
   studentId: Scalars['UUID']['input'];
@@ -29909,6 +30244,12 @@ export type School21QueriesGetHeatMapEventsStudentStatisticArgs = {
   schoolId?: InputMaybe<Scalars['UUID']['input']>;
   startDate: Scalars['Date']['input'];
   userId: Scalars['UUID']['input'];
+};
+
+
+export type School21QueriesGetInternshipReviewDataInfoByStudentArgs = {
+  goalId: Scalars['ID']['input'];
+  studentId: Scalars['UUID']['input'];
 };
 
 
@@ -29961,6 +30302,11 @@ export type School21QueriesGetProjectAttemptEvaluationsInfo_V1Args = {
 export type School21QueriesGetProjectTeamWithMembersArgs = {
   goalId: Scalars['ID']['input'];
   studentId: Scalars['UUID']['input'];
+};
+
+
+export type School21QueriesGetS21ClassHasDeadlineArgs = {
+  classId: Scalars['ID']['input'];
 };
 
 
@@ -30059,6 +30405,12 @@ export type School21QueriesGetStatisticBookingAttemptArgs = {
 
 
 export type School21QueriesGetStudentByLoginArgs = {
+  login: Scalars['String']['input'];
+};
+
+
+export type School21QueriesGetStudentCourseFinalScoreByLoginAndGoalIdArgs = {
+  localCourseId: Scalars['ID']['input'];
   login: Scalars['String']['input'];
 };
 
@@ -31634,6 +31986,10 @@ export type StageGroup = {
   isActive: Scalars['Boolean']['output'];
   /** является ли межклассной группой */
   isIntergroup: Scalars['Boolean']['output'];
+  /** Дата завершения обучения */
+  learningCompleteTs?: Maybe<Scalars['DateTime']['output']>;
+  /** Статус обучения */
+  learningStatus: LearningStatusEnum;
   /** тип обучения */
   learningType: LearningTypeEnum;
   /** @deprecated Используйте StageGroupWithTimeslotSetId */
@@ -31667,6 +32023,10 @@ export type StageGroupAggregated = {
   isActive: Scalars['Boolean']['output'];
   /** является ли межклассной группой */
   isIntergroup: Scalars['Boolean']['output'];
+  /** Дата завершения обучения */
+  learningCompleteTs?: Maybe<Scalars['DateTime']['output']>;
+  /** Статус обучения */
+  learningStatus: LearningStatusEnum;
   /** тип обучения */
   learningType: LearningTypeEnum;
   /** название класса (А, ФизТех) */
@@ -31742,6 +32102,10 @@ export type StageGroupExtended = {
   isIntergroup: Scalars['Boolean']['output'];
   /** является ли интенсивом */
   isItIntensiveStage?: Maybe<Scalars['Boolean']['output']>;
+  /** Дата завершения обучения */
+  learningCompleteTs?: Maybe<Scalars['DateTime']['output']>;
+  /** Статус обучения */
+  learningStatus: LearningStatusEnum;
   /** тип обучения */
   learningType: LearningTypeEnum;
   /** название класса (А, ФизТех) */
@@ -32205,13 +32569,13 @@ export type StagePlanRules = {
   /** Флаг, указывающий на игнорирование любых дедлайнов для модуля */
   deadlineFree: Scalars['Boolean']['output'];
   /** "Начать с ..." */
-  ruleBeginFrom: Scalars['Int']['output'];
+  ruleBeginFrom?: Maybe<Scalars['Int']['output']>;
   /** "Проверка" */
-  ruleCheckFrom: Scalars['Int']['output'];
+  ruleCheckFrom?: Maybe<Scalars['Int']['output']>;
   /** "Часы на проект" */
-  ruleProjectHours: Scalars['Int']['output'];
+  ruleProjectHours?: Maybe<Scalars['Int']['output']>;
   /** "Регистрация" */
-  ruleSignUpFrom: Scalars['Int']['output'];
+  ruleSignUpFrom?: Maybe<Scalars['Int']['output']>;
 };
 
 export type StageS21ClassPlans = {
@@ -32637,8 +33001,6 @@ export type StatisticReportQueries = {
   getStatisticModuleTabFlagsPerSchool: Array<FeatureFlagsPerSchool>;
   /** @deprecated Под удаление. EDU-44903 */
   getStatisticTaskTabFlagsPerSchool: Array<FeatureFlagsPerSchool>;
-  /** @deprecated Под удаление. EDU-44903 */
-  getStatisticsEntrantFeatureFlagsPerSchool: Array<FeatureFlagsPerSchool>;
   /** Форма достигнутого уровня по модулю */
   getStudentAchievedGoals: Array<StudentGoalAchievement>;
   /** Не реализован */
@@ -33701,6 +34063,34 @@ export type StudentCompletedGoalsInfo = {
 };
 
 /** Информация о попытке прохождения курса */
+export type StudentCourseAttempt = {
+  __typename?: 'StudentCourseAttempt';
+  /** Процент пройденного */
+  finalPercentage: Scalars['Int']['output'];
+  /** Порог прохождения */
+  percentageOfCompletion: Scalars['Int']['output'];
+  /** Количество баллов полученное за попытку */
+  pointProject: Scalars['Int']['output'];
+  /** Идентификатор попытки выполнения модуля студента */
+  studentCourseAttemptId: Scalars['ID']['output'];
+};
+
+/** Информация о попытке прохождения курса */
+export type StudentCourseAttemptHeader = {
+  __typename?: 'StudentCourseAttemptHeader';
+  /** Процент пройденного */
+  finalPercentage?: Maybe<Scalars['Int']['output']>;
+  /** Количество баллов полученное за попытку */
+  pointProject?: Maybe<Scalars['Int']['output']>;
+  /** Результат попытки */
+  resultCourseCompletion?: Maybe<CompletionResultStatus>;
+  /** Дата и время попытки */
+  resultDate?: Maybe<Scalars['DateTime']['output']>;
+  /** Идентификатор попытки выполнения модуля студента */
+  studentCourseAttemptId?: Maybe<Scalars['ID']['output']>;
+};
+
+/** Информация о попытке прохождения курса */
 export type StudentCourseAttemptStatistic = {
   __typename?: 'StudentCourseAttemptStatistic';
   /** Результат попытки */
@@ -33711,6 +34101,27 @@ export type StudentCourseAttemptStatistic = {
   pointProject: Scalars['Int']['output'];
   /** Дата и время попытки */
   resultDate: Scalars['DateTime']['output'];
+};
+
+/** Финальный результат за курс */
+export type StudentCourseFinalScore = {
+  __typename?: 'StudentCourseFinalScore';
+  /** Тип формулы финальной сборки */
+  attemptCountingFormula?: Maybe<AttemptCountingFormulaEnum>;
+  /** Статус модуля */
+  courseStatus?: Maybe<CourseStatus>;
+  /** Процент выполнения */
+  finalPercentage?: Maybe<Scalars['Int']['output']>;
+  /** Начисленный фактический бал выполнения задания */
+  finalPoint?: Maybe<Scalars['Int']['output']>;
+  /** Процент, который необходимо набрать чтобы задание считалось выполненным */
+  percentageOfCompletion: Scalars['Int']['output'];
+  /** Дата и время расчета оценки за проект */
+  resultDate?: Maybe<Scalars['DateTime']['output']>;
+  /** Информация о попытке прохождения модуля */
+  studentAttemptList: Array<StudentCourseAttemptHeader>;
+  /** Идентификатор студенческого курса */
+  studentCourseId: Scalars['ID']['output'];
 };
 
 /** Курс назначенный на студента */
@@ -34285,11 +34696,26 @@ export type StudentGoalAttemptHeader = {
   studentGoalAttemptId?: Maybe<Scalars['ID']['output']>;
 };
 
+/** Результаты попытки прохождения студентом проекта */
+export type StudentGoalAttemptShortInfo = {
+  __typename?: 'StudentGoalAttemptShortInfo';
+  /** Результат проверки */
+  attemptStatusId: Scalars['Int']['output'];
+  /** Итоговый балл за выполнение проекта */
+  finalPercentageProject?: Maybe<Scalars['Int']['output']>;
+  /** Дата окончания выполнения */
+  resultDate?: Maybe<Scalars['Date']['output']>;
+  /** ID попытки студенческого проекта */
+  studentGoalAttemptId: Scalars['ID']['output'];
+};
+
 /** Информация о попытке прохождения модуля */
 export type StudentGoalAttemptStatistic = {
   __typename?: 'StudentGoalAttemptStatistic';
   /** Процент пройденного */
   finalPercentage: Scalars['Int']['output'];
+  /** Процент за выполнение задания */
+  percentageOfCompletion?: Maybe<Scalars['Int']['output']>;
   /** Количество баллов полученное за попытку */
   pointProject: Scalars['Int']['output'];
   /** Дата и время попытки */
@@ -34883,6 +35309,8 @@ export type StudentModule = {
   achieveInfo: ModuleAchieveInfo;
   /** Максимально достигнутый Студентом Уровень в рамках Учебного Модуля */
   achievedLevel: Scalars['Float']['output'];
+  /** формула подсчета оценки при повторном прохождении проекта */
+  attemptCountingFormula?: Maybe<AttemptCountingFormulaEnum>;
   /** Аватар модуля (старая версия) */
   avatarUrl?: Maybe<Scalars['String']['output']>;
   /** Награды, выдаваемые за закрытие модуля */
@@ -36395,22 +36823,40 @@ export type StudentProjectForBa = {
   finalPoint?: Maybe<Scalars['Int']['output']>;
   /** Максимальный бал за задание (основная секция) */
   pointTask: Scalars['Int']['output'];
-  /** Информация о модуле */
-  project: Goal;
+  /** Тип модуля */
+  projectExecutionType: S21ProjectExecutionType;
+  /** ID проекта (goalId, localCourseId) */
+  projectId: Scalars['ID']['output'];
+  /** Наименования модуля */
+  projectName: Scalars['String']['output'];
   /** Информация о параллели */
   stage: Stage;
   /** Информация о классе */
   stageGroup: StageGroup;
   /** Дата перевода проекта в текущий статус */
   statusCreationTime?: Maybe<Scalars['Date']['output']>;
+  /** Статус проекта студента */
+  studentProjectStatus?: Maybe<StudentProjectStatus>;
+  /** Список проектов в курсе */
+  studentProjectsInCourse: Array<StudentProjectInCourse>;
+};
+
+export type StudentProjectInCourse = {
+  __typename?: 'StudentProjectInCourse';
+  /** Процент выполнения */
+  finalPercentage?: Maybe<Scalars['Int']['output']>;
+  /** ID модуля */
+  goalId: Scalars['ID']['output'];
+  /** Тип модуля */
+  projectExecutionType: S21ProjectExecutionType;
+  /** Наименования модуля */
+  projectName: Scalars['String']['output'];
+  /** Дата перевода проекта в текущий статус */
+  statusCreationTime?: Maybe<Scalars['Date']['output']>;
   /** Идентификатор модуля студента (student_goal_id) */
   studentGoalId: Scalars['ID']['output'];
   /** Статус проекта студента */
   studentProjectStatus?: Maybe<StudentProjectStatus>;
-  /** Идентификатор задания относительно студента (student_task_id) */
-  studentTaskId?: Maybe<Scalars['ID']['output']>;
-  /** Информация о задании */
-  task: TaskWithAssignmentType;
 };
 
 /** Информация о проекте студента (в том числе не начатого) */
@@ -36788,10 +37234,7 @@ export type StudentQueries = {
   /** S21. получение время завершения последнего выполнения задачи студентом из атрибута edu_power_shard.student_tasks.last_need_check_status_time */
   getModifyTimeByTask?: Maybe<Scalars['DateTime']['output']>;
   getModuleById: StudentModule;
-  /**
-   * Получение полной информации на странице проекта
-   * @deprecated Актуальная версия квери getProjectAttemptEvaluationsInfo_V1
-   */
+  /** Получение полной информации на странице проекта */
   getModuleCoverInformation?: Maybe<ModuleCoverInformation>;
   /**
    * Возвращает текущие Учебные Модуля Студента
@@ -36860,6 +37303,11 @@ export type StudentQueries = {
   /** Получение информации о проверках по проекту */
   getProjectAttemptEvaluationsInfo: Array<ProjectAttemptEvaluationsInfo>;
   getProjectEvaluationsInfo: ProjectEvaluationsInfo;
+  /**
+   * Получение статистики по проекту (для индивидуальных и групповых проектов)
+   * @deprecated Актуальная версия квери getProjectAttemptEvaluationsInfo_V1
+   */
+  getProjectStatistics?: Maybe<ProjectStatistics>;
   /** Получение информации о команде в групповом задании */
   getProjectTeamMembers?: Maybe<ProjectTeamMembers>;
   /** Получение команды, в которой состоит пользователь, выполняющий групповой проект */
@@ -37839,6 +38287,11 @@ export type StudentQueriesGetProjectEvaluationsInfoArgs = {
 };
 
 
+export type StudentQueriesGetProjectStatisticsArgs = {
+  goalId: Scalars['ID']['input'];
+};
+
+
 export type StudentQueriesGetProjectTeamMembersArgs = {
   studentTaskId: Scalars['ID']['input'];
 };
@@ -38530,6 +38983,7 @@ export type StudentRadarChart = {
 /** Агрегированные данные по навыку для диаграммы Радар (Паутинка) */
 export type StudentRadarChartBySkill = {
   __typename?: 'StudentRadarChartBySkill';
+  achievedLevel: Scalars['Float']['output'];
   completedTaskCount: Scalars['Int']['output'];
   goalLevelForSkill?: Maybe<Scalars['Float']['output']>;
   level3CompletedTasksCount: Scalars['Int']['output'];
@@ -38541,6 +38995,7 @@ export type StudentRadarChartBySkill = {
   skillId: Scalars['ID']['output'];
   skillName: Scalars['String']['output'];
   skillShortDescription?: Maybe<Scalars['String']['output']>;
+  stageGroupId: Scalars['ID']['output'];
 };
 
 /** Агрегированные данные по предмету для диаграммы Радар (Паутинка) */
@@ -39363,6 +39818,7 @@ export type StudentTaskWithCounters = {
 
 export type StudentTaskWithCriterias = {
   __typename?: 'StudentTaskWithCriterias';
+  markHistory?: Maybe<Array<Maybe<MarkHistory>>>;
   studentCriteriaValues?: Maybe<Array<Maybe<StudentCriteriaValue>>>;
   studentTask: StudentTask;
 };
@@ -40198,6 +40654,8 @@ export type StudyProcessFileFailOrCancelInput = {
 export type StudyProcessFileInitialInput = {
   /** Имя файла */
   fileName: Scalars['String']['input'];
+  /** fileSize */
+  fileSize?: InputMaybe<Scalars['Int']['input']>;
   /** Путь к файлу в файловом сервисе */
   relativePath: Scalars['String']['input'];
 };
@@ -43759,12 +44217,6 @@ export enum TaskWidgetStatusEnum {
   NeedCheck = 'NEED_CHECK'
 }
 
-export type TaskWithAssignmentType = {
-  __typename?: 'TaskWithAssignmentType';
-  assignmentType: TaskAssignmentEnum;
-  taskId: Scalars['ID']['output'];
-};
-
 /** Задание с колличеством студентов группы выполнивших его */
 export type TaskWithCompletedByStudentsInGroupAttribute = {
   __typename?: 'TaskWithCompletedByStudentsInGroupAttribute';
@@ -45364,6 +45816,8 @@ export type TeacherQueries = {
   getClassSubjectControlWorkInfo: ClassSubjectControlWorkInfo;
   /** Агрегированная информация вкладки контрорльная работа экрана мои классы */
   getClassSubjectControlWorks: ClassSubject;
+  /** Возвращает иден */
+  getClassSubjectGroupsForTeacher: Array<StageGroupInfo>;
   /** Возвращает идентификатор Группы по идентификатору ученика и идентификатору задания (tasks) или null если его нет */
   getClassSubjectIdByStudentIdAndTaskId?: Maybe<Scalars['ID']['output']>;
   /**
@@ -45793,6 +46247,8 @@ export type TeacherQueries = {
   getStudentsProgressForBTC: Array<StudentPersonalProgress>;
   /** Получить прогресс учащихся для проекта Bootcamp (версия 2, использующая report-service) */
   getStudentsProgressForBTCV2: Array<StudentPersonalProgress>;
+  /** Возвращает агрегированные данные по навыкам для диаграммы Радар (Паутинка) */
+  getStudentsSkillRadarChartData: Array<AggregatedSkillStudentRadarChart>;
   /** Получить информацию об учениках группы по предмету и их группе успеваемости */
   getStudentsWithPerformance: Array<StudentWithPerformance>;
   /** Возвращает все элементы целей и относящиеся к ним задания. */
@@ -46240,6 +46696,12 @@ export type TeacherQueriesGetClassSubjectControlWorkInfoArgs = {
 
 export type TeacherQueriesGetClassSubjectControlWorksArgs = {
   classSubjectId: Scalars['ID']['input'];
+};
+
+
+export type TeacherQueriesGetClassSubjectGroupsForTeacherArgs = {
+  academicYearId: Scalars['ID']['input'];
+  teacherId: Scalars['ID']['input'];
 };
 
 
@@ -47474,6 +47936,11 @@ export type TeacherQueriesGetStudentsProgressForBtcArgs = {
 
 export type TeacherQueriesGetStudentsProgressForBtcv2Args = {
   filter: StudentProgressFilterBtcInput;
+};
+
+
+export type TeacherQueriesGetStudentsSkillRadarChartDataArgs = {
+  stageGroupIds: Array<Scalars['ID']['input']>;
 };
 
 
@@ -49794,6 +50261,8 @@ export type UserExperience = {
   cookiesCount: Scalars['Int']['output'];
   /** id пользователя */
   id: Scalars['ID']['output'];
+  /** S21. Консистентный ли баланс у пользователя */
+  isReviewPointsConsistent?: Maybe<Scalars['Boolean']['output']>;
   /** текущий уровень */
   level: ExperienceLevel;
   /** уведомлен ли пользователь что ему присвоен уровень */
@@ -50038,6 +50507,8 @@ export type UserMutations = {
   clearOtherUserQuickLogins: UserLoginSettings;
   /** создание жалобы */
   createComplaint: Scalars['Boolean']['output'];
+  /** создание жалобы в Bootcamp */
+  createComplaintBTC: Scalars['Boolean']['output'];
   /** Оставить сообщение об ошибке в тексте */
   createMisprintReport: Scalars['Boolean']['output'];
   /** создание системной ошибки */
@@ -50072,10 +50543,16 @@ export type UserMutations = {
   switchUserTheme: Scalars['Boolean']['output'];
   /** Изменение статуса и комментария исполнителя у жалоб */
   updateComplaint: Scalars['Boolean']['output'];
+  /** Изменение статуса и комментария исполнителя у жалоб в Bootcamp */
+  updateComplaintBTC: Scalars['Boolean']['output'];
+  /** Массовое изменение статуса у жалоб в Bootcamp */
+  updateComplaintsStatusBTC: Scalars['Boolean']['output'];
   /** Редактирование ФИО */
   updateFullName: User;
   /** Изменение статуса и комментария исполнителя у опечаток */
   updateMisprint: Scalars['Boolean']['output'];
+  /** Массовое изменение статуса у опечаток в Bootcamp */
+  updateMisprintsStatusBTC: Scalars['Boolean']['output'];
   /** редактирование профиля */
   updateProfile: User;
   /** изменение email, для учителя при первом входе. */
@@ -50098,6 +50575,11 @@ export type UserMutationsChangeUsersActiveStatusArgs = {
 
 
 export type UserMutationsCreateComplaintArgs = {
+  complaint: ComplaintInput;
+};
+
+
+export type UserMutationsCreateComplaintBtcArgs = {
   complaint: ComplaintInput;
 };
 
@@ -50192,6 +50674,19 @@ export type UserMutationsUpdateComplaintArgs = {
 };
 
 
+export type UserMutationsUpdateComplaintBtcArgs = {
+  complaintId: Scalars['ID']['input'];
+  executorComment?: InputMaybe<Scalars['String']['input']>;
+  status: ComplaintAndSystemErrorStatus;
+};
+
+
+export type UserMutationsUpdateComplaintsStatusBtcArgs = {
+  complaintIds: Array<Scalars['ID']['input']>;
+  status: ComplaintAndSystemErrorStatus;
+};
+
+
 export type UserMutationsUpdateFullNameArgs = {
   firstName: Scalars['String']['input'];
   lastName: Scalars['String']['input'];
@@ -50202,6 +50697,12 @@ export type UserMutationsUpdateFullNameArgs = {
 export type UserMutationsUpdateMisprintArgs = {
   executorComment?: InputMaybe<Scalars['String']['input']>;
   misprintId: Scalars['ID']['input'];
+  status: ComplaintAndSystemErrorStatus;
+};
+
+
+export type UserMutationsUpdateMisprintsStatusBtcArgs = {
+  misprintIds: Array<Scalars['ID']['input']>;
   status: ComplaintAndSystemErrorStatus;
 };
 
@@ -50506,12 +51007,18 @@ export type UserQueries = {
   canAddComplaint: Scalars['Boolean']['output'];
   /** Запрос количества жалоб */
   countComplaints: Scalars['Int']['output'];
+  /** Запрос количества жалоб в Bootcamp */
+  countComplaintsBTC: Scalars['Int']['output'];
   /** Запрос количества рейтингов */
   countFeedbacks: Scalars['Int']['output'];
   /** Запрос количества рейтингов текущего пользователя */
   countMyFeedbacks: Scalars['Int']['output'];
   /** Запрос количества системных ошибок */
   countSystemError: Scalars['Int']['output'];
+  /** Отчет по жалобам пользователей в Bootcamp */
+  exportComplaintsBTC: ReportExcelFile;
+  /** Отчет по опечаткам в Bootcamp */
+  exportMisprintReportsBTC: ReportExcelFile;
   /**
    * Генерация логина пользователя
    * Генерация логина пользователя
@@ -50571,8 +51078,12 @@ export type UserQueries = {
   getAvatarUrls: Array<Scalars['String']['output']>;
   /** Справочник причин жалоб */
   getComplaintReasons: Array<ComplaintReason>;
+  /** Справочник причин жалоб в Bootcamp */
+  getComplaintReasonsBTC: Array<ComplaintReason>;
   /** Просмотр жалоб */
   getComplaints: Array<Complaint>;
+  /** Просмотр жалоб в Bootcamp */
+  getComplaintsBTC: Array<Complaint>;
   /**
    * Получение всех запрошенных конфигураций.
    * @deprecated Have to be removed after ui for parameters with tariff. Remove after a new API version is rolled out that takes into account the Product configurations
@@ -50631,7 +51142,9 @@ export type UserQueries = {
   /** Справочник причин ошибок в тексте */
   getMisprintReasons: Array<MisprintReason>;
   getMisprintReports: Array<MisprintReport>;
+  getMisprintReportsBTC: Array<MisprintReportBtc>;
   getMisprintReportsCount: Scalars['Int']['output'];
+  getMisprintReportsCountBTC: Scalars['Int']['output'];
   /** Просмотр рейтингов текщего пользователя */
   getMyFeedbacks: Array<Feedback>;
   /** Просмотр сообщений об ошибках в тексте от текущего пользователя */
@@ -50686,6 +51199,11 @@ export type UserQueriesCountComplaintsArgs = {
 };
 
 
+export type UserQueriesCountComplaintsBtcArgs = {
+  complaintFilter: ComplaintFilterInput;
+};
+
+
 export type UserQueriesCountFeedbacksArgs = {
   taskId?: InputMaybe<Scalars['ID']['input']>;
   textSearch?: InputMaybe<Scalars['String']['input']>;
@@ -50703,6 +51221,16 @@ export type UserQueriesCountSystemErrorArgs = {
   dateTo?: InputMaybe<Scalars['DateTime']['input']>;
   filterStatus?: InputMaybe<ComplaintAndSystemErrorStatus>;
   textSearch?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type UserQueriesExportComplaintsBtcArgs = {
+  complaintFilter: ComplaintExportFilterInput;
+};
+
+
+export type UserQueriesExportMisprintReportsBtcArgs = {
+  misprintFilter: MisprintExportFilterInput;
 };
 
 
@@ -50777,6 +51305,11 @@ export type UserQueriesGetComplaintsArgs = {
   filterStatus?: InputMaybe<ComplaintAndSystemErrorStatus>;
   paging?: InputMaybe<PagingInput>;
   textSearch?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type UserQueriesGetComplaintsBtcArgs = {
+  complaintFilter: ComplaintFilterInput;
 };
 
 
@@ -50885,12 +51418,22 @@ export type UserQueriesGetMisprintReportsArgs = {
 };
 
 
+export type UserQueriesGetMisprintReportsBtcArgs = {
+  misprintFilter: MisprintFilterInput;
+};
+
+
 export type UserQueriesGetMisprintReportsCountArgs = {
   dateFrom?: InputMaybe<Scalars['DateTime']['input']>;
   dateTo?: InputMaybe<Scalars['DateTime']['input']>;
   filterReasons?: InputMaybe<Array<Scalars['ID']['input']>>;
   filterStatus?: InputMaybe<ComplaintAndSystemErrorStatus>;
   textSearch?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type UserQueriesGetMisprintReportsCountBtcArgs = {
+  misprintFilter: MisprintFilterInput;
 };
 
 
@@ -53926,7 +54469,7 @@ export const LocalCourseFragmentDoc = gql`
   finalPoint
   finalPercentage
   status
-  deadlineFree
+  periodSettings
   retriesUsed
   retrySettings {
     ...RetrySettings
@@ -54097,6 +54640,7 @@ export const StudyProcessFileFragmentDoc = gql`
   updateDateTime
   creatorLogin
   fileExtension
+  fileSize
 }
     `;
 export const CoinsTransactionInfoFragmentDoc = gql`
@@ -54588,12 +55132,8 @@ export const ModuleCoverInfoFragmentDoc = gql`
   timeline {
     ...TimelineItem
   }
-  projectStatistics {
-    ...ProjectStatistics
-  }
 }
-    ${TimelineItemFragmentDoc}
-${ProjectStatisticsFragmentDoc}`;
+    ${TimelineItemFragmentDoc}`;
 export const TeamSettingsInfoFragmentDoc = gql`
     fragment teamSettingsInfo on TeamSettings {
   teamCreateOption
@@ -54962,6 +55502,11 @@ export const UserRoleLoaderGetRolesDocument = gql`
     getCurrentUserSchoolRoles {
       schoolId
     }
+    getCurrentUserRoles {
+      orgUnitId
+      orgUnitShortName
+      roleCode
+    }
   }
 }
     `;
@@ -55163,6 +55708,13 @@ export const GetStudentCurrentProjectsDocument = gql`
   }
 }
     ${StudentProjectItemFragmentDoc}`;
+export const SetDefaultRoleDocument = gql`
+    mutation SetDefaultRole($role: ROLES!, $orgUnitId: ID) {
+  user {
+    setUserRoleDefaultContext_v2(role: $role, orgUnitId: $orgUnitId)
+  }
+}
+    `;
 export const GetGlobalSearchResultsDocument = gql`
     query getGlobalSearchResults($searchString: String!, $items: [SearchItem]!, $page: PagingInput!) {
   globalSearch {
@@ -55277,6 +55829,13 @@ export const GetUserRestrictionsInfoDocument = gql`
       createdTs
       updatedTs
     }
+  }
+}
+    `;
+export const GetIsApiDocumentationEnabledDocument = gql`
+    query getIsApiDocumentationEnabled {
+  sc21StudentTaskCheck {
+    isOpenApiAllowed
   }
 }
     `;
@@ -55514,6 +56073,7 @@ export const DashboardHeaderGetInfoDocument = gql`
       cookiesCount
       coinsCount
       codeReviewPoints
+      isReviewPointsConsistent
     }
   }
 }
@@ -56297,17 +56857,6 @@ export const GetGoalAttemptStatisticDocument = gql`
   }
 }
     ${AttemptStatisticResultFragmentDoc}`;
-export const LimitationRightsCreateDeadlineShiftRequestDocument = gql`
-    mutation limitationRightsCreateDeadlineShiftRequest($deadlineId: UUID!, $comment: String!) {
-  student {
-    createDeadlineShiftRequest(
-      deadlineRequest: {deadlineId: $deadlineId, comment: $comment}
-    ) {
-      deadlineShiftRequestId
-    }
-  }
-}
-    `;
 export const AddToFavouritesDocument = gql`
     mutation addToFavourites($videoId: UUID!) {
   mediateka {
@@ -56436,10 +56985,13 @@ export const MarkFileSolutionUploadCancelledDocument = gql`
   }
 }
     ${StudyProcessFileFragmentDoc}`;
-export const MarkFileSolutionUploadedDocument = gql`
-    mutation markFileSolutionUploaded($taskId: ID!, $fileUploadEvents: [StudyProcessFileUploadInput!]!) {
+export const MarkFileSolutionUploadedStatusDocument = gql`
+    mutation markFileSolutionUploadedStatus($taskId: ID!, $studyProcessFileIds: [ID!]!) {
   sc21StudentTaskCheck {
-    markFileSolutionUploaded(taskId: $taskId, fileUploadEvents: $fileUploadEvents) {
+    markFileSolutionUploadedStatus(
+      taskId: $taskId
+      studyProcessFileIds: $studyProcessFileIds
+    ) {
       ...StudyProcessFile
     }
   }
@@ -57245,15 +57797,25 @@ export const GetPlatfSolutionDocument = gql`
 }
     ${PartialStudyProcessFileFragmentDoc}`;
 export const GetLinkToPrivateStudentGitlabProjectByAnswerIdDocument = gql`
-    query getLinkToPrivateStudentGitlabProjectByAnswerId($studentAnswerId: ID!) {
+    query getLinkToPrivateStudentGitlabProjectByAnswerId($answerId: ID!) {
   student {
-    getLinkToPrivateStudentGitlabProjectByAnswerId(answerId: $studentAnswerId) {
+    getPrivateGitlabProjectLinkInfoByAnswerId(answerId: $answerId) {
       httpsLink
       sshLink
+      status
     }
   }
 }
     `;
+export const GetProjectStatisticsDocument = gql`
+    query getProjectStatistics($goalId: ID!) {
+  student {
+    getProjectStatistics(goalId: $goalId) {
+      ...ProjectStatistics
+    }
+  }
+}
+    ${ProjectStatisticsFragmentDoc}`;
 export const CheckCodeReviewPointsDocument = gql`
     mutation checkCodeReviewPoints($goalId: ID!) {
   student {
@@ -57406,6 +57968,7 @@ export const PublicProfileGetPersonalInfoDocument = gql`
       cookiesCount
       coinsCount
       codeReviewPoints
+      isReviewPointsConsistent
     }
     getEmailbyUserId(userId: $userId)
     getClassRoomByLogin(login: $login) {
@@ -57610,6 +58173,9 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     getStudentCurrentProjects(variables: GetStudentCurrentProjectsQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<GetStudentCurrentProjectsQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<GetStudentCurrentProjectsQuery>(GetStudentCurrentProjectsDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'getStudentCurrentProjects', 'query', variables);
     },
+    SetDefaultRole(variables: SetDefaultRoleMutationVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<SetDefaultRoleMutation> {
+      return withWrapper((wrappedRequestHeaders) => client.request<SetDefaultRoleMutation>(SetDefaultRoleDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'SetDefaultRole', 'mutation', variables);
+    },
     getGlobalSearchResults(variables: GetGlobalSearchResultsQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<GetGlobalSearchResultsQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<GetGlobalSearchResultsQuery>(GetGlobalSearchResultsDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'getGlobalSearchResults', 'query', variables);
     },
@@ -57633,6 +58199,9 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     },
     getUserRestrictionsInfo(variables?: GetUserRestrictionsInfoQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<GetUserRestrictionsInfoQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<GetUserRestrictionsInfoQuery>(GetUserRestrictionsInfoDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'getUserRestrictionsInfo', 'query', variables);
+    },
+    getIsApiDocumentationEnabled(variables?: GetIsApiDocumentationEnabledQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<GetIsApiDocumentationEnabledQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<GetIsApiDocumentationEnabledQuery>(GetIsApiDocumentationEnabledDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'getIsApiDocumentationEnabled', 'query', variables);
     },
     getTournamentNotificationResults(variables?: GetTournamentNotificationResultsQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<GetTournamentNotificationResultsQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<GetTournamentNotificationResultsQuery>(GetTournamentNotificationResultsDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'getTournamentNotificationResults', 'query', variables);
@@ -57853,9 +58422,6 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     getGoalAttemptStatistic(variables: GetGoalAttemptStatisticQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<GetGoalAttemptStatisticQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<GetGoalAttemptStatisticQuery>(GetGoalAttemptStatisticDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'getGoalAttemptStatistic', 'query', variables);
     },
-    limitationRightsCreateDeadlineShiftRequest(variables: LimitationRightsCreateDeadlineShiftRequestMutationVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<LimitationRightsCreateDeadlineShiftRequestMutation> {
-      return withWrapper((wrappedRequestHeaders) => client.request<LimitationRightsCreateDeadlineShiftRequestMutation>(LimitationRightsCreateDeadlineShiftRequestDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'limitationRightsCreateDeadlineShiftRequest', 'mutation', variables);
-    },
     addToFavourites(variables: AddToFavouritesMutationVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<AddToFavouritesMutation> {
       return withWrapper((wrappedRequestHeaders) => client.request<AddToFavouritesMutation>(AddToFavouritesDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'addToFavourites', 'mutation', variables);
     },
@@ -57895,8 +58461,8 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     markFileSolutionUploadCancelled(variables: MarkFileSolutionUploadCancelledMutationVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<MarkFileSolutionUploadCancelledMutation> {
       return withWrapper((wrappedRequestHeaders) => client.request<MarkFileSolutionUploadCancelledMutation>(MarkFileSolutionUploadCancelledDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'markFileSolutionUploadCancelled', 'mutation', variables);
     },
-    markFileSolutionUploaded(variables: MarkFileSolutionUploadedMutationVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<MarkFileSolutionUploadedMutation> {
-      return withWrapper((wrappedRequestHeaders) => client.request<MarkFileSolutionUploadedMutation>(MarkFileSolutionUploadedDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'markFileSolutionUploaded', 'mutation', variables);
+    markFileSolutionUploadedStatus(variables: MarkFileSolutionUploadedStatusMutationVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<MarkFileSolutionUploadedStatusMutation> {
+      return withWrapper((wrappedRequestHeaders) => client.request<MarkFileSolutionUploadedStatusMutation>(MarkFileSolutionUploadedStatusDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'markFileSolutionUploadedStatus', 'mutation', variables);
     },
     getPenaltiesCount(variables: GetPenaltiesCountQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<GetPenaltiesCountQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<GetPenaltiesCountQuery>(GetPenaltiesCountDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'getPenaltiesCount', 'query', variables);
@@ -58099,6 +58665,9 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     getLinkToPrivateStudentGitlabProjectByAnswerId(variables: GetLinkToPrivateStudentGitlabProjectByAnswerIdQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<GetLinkToPrivateStudentGitlabProjectByAnswerIdQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<GetLinkToPrivateStudentGitlabProjectByAnswerIdQuery>(GetLinkToPrivateStudentGitlabProjectByAnswerIdDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'getLinkToPrivateStudentGitlabProjectByAnswerId', 'query', variables);
     },
+    getProjectStatistics(variables: GetProjectStatisticsQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<GetProjectStatisticsQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<GetProjectStatisticsQuery>(GetProjectStatisticsDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'getProjectStatistics', 'query', variables);
+    },
     checkCodeReviewPoints(variables: CheckCodeReviewPointsMutationVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<CheckCodeReviewPointsMutation> {
       return withWrapper((wrappedRequestHeaders) => client.request<CheckCodeReviewPointsMutation>(CheckCodeReviewPointsDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'checkCodeReviewPoints', 'mutation', variables);
     },
@@ -58183,7 +58752,7 @@ export type GetUserFeatureFlagsQuery = { __typename?: 'Query', user?: { __typena
 export type UserRoleLoaderGetRolesQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type UserRoleLoaderGetRolesQuery = { __typename?: 'Query', user?: { __typename?: 'UserQueries', getCurrentUser: { __typename?: 'User', id: string, functionalRoles: Array<{ __typename?: 'FunctionalRole', code: string }>, studentRoles?: Array<{ __typename?: 'StudentRole', id: string, status: RoleStatus, school: { __typename?: 'SafeSchool', id: string, shortName: string, organizationType: string } }> | null, userSchoolPermissions: Array<{ __typename?: 'UserSchoolPermission', schoolId?: string | null, permissions: Array<string> }>, systemAdminRole?: { __typename?: 'SystemAdminRole', id: string } | null, businessAdminRolesV2?: Array<{ __typename?: 'BusinessAdminRoleV2', id: string, orgUnitId: string, school?: { __typename?: 'SafeSchool', id: string, organizationType: string } | null }> | null }, getCurrentUserSchoolRoles: Array<{ __typename?: 'UserSchoolRole', schoolId?: string | null }> } | null };
+export type UserRoleLoaderGetRolesQuery = { __typename?: 'Query', user?: { __typename?: 'UserQueries', getCurrentUser: { __typename?: 'User', id: string, functionalRoles: Array<{ __typename?: 'FunctionalRole', code: string }>, studentRoles?: Array<{ __typename?: 'StudentRole', id: string, status: RoleStatus, school: { __typename?: 'SafeSchool', id: string, shortName: string, organizationType: string } }> | null, userSchoolPermissions: Array<{ __typename?: 'UserSchoolPermission', schoolId?: string | null, permissions: Array<string> }>, systemAdminRole?: { __typename?: 'SystemAdminRole', id: string } | null, businessAdminRolesV2?: Array<{ __typename?: 'BusinessAdminRoleV2', id: string, orgUnitId: string, school?: { __typename?: 'SafeSchool', id: string, organizationType: string } | null }> | null }, getCurrentUserSchoolRoles: Array<{ __typename?: 'UserSchoolRole', schoolId?: string | null }>, getCurrentUserRoles: Array<{ __typename?: 'UserRole', orgUnitId: string, orgUnitShortName: string, roleCode: string }> } | null };
 
 export type CreateEventFeedbackMutationVariables = Exact<{
   calendarEventId: Scalars['ID']['input'];
@@ -58289,6 +58858,14 @@ export type GetStudentCurrentProjectsQueryVariables = Exact<{
 
 export type GetStudentCurrentProjectsQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getStudentCurrentProjects: Array<{ __typename?: 'StudentItem', goalId?: number | null, name: string, description: string, experience: number, dateTime?: Date | null, finalPercentage?: number | null, laboriousness: number, executionType?: ModuleExecutionType | null, goalStatus?: DisplayedGoalStatus | null, courseType?: CourseType | null, displayedCourseStatus?: DisplayedCourseStatus | null, amountAnswers?: number | null, amountMembers?: number | null, amountJoinedMembers?: number | null, amountReviewedAnswers?: number | null, amountCodeReviewMembers?: number | null, amountCurrentCodeReviewMembers?: number | null, groupName: string, localCourseId?: number | null } | null> } | null };
 
+export type SetDefaultRoleMutationVariables = Exact<{
+  role: Roles;
+  orgUnitId?: InputMaybe<Scalars['ID']['input']>;
+}>;
+
+
+export type SetDefaultRoleMutation = { __typename?: 'Mutation', user?: { __typename?: 'UserMutations', setUserRoleDefaultContext_v2: boolean } | null };
+
 export type GlobalSearchCoursesSearchResultFragment = { __typename?: 'CoursesSearchResult', count?: number | null, courses: Array<{ __typename?: 'StudentItem', goalId?: number | null, name: string, displayedCourseStatus?: DisplayedCourseStatus | null, executionType?: ModuleExecutionType | null, finalPercentage?: number | null, experience: number, courseType?: CourseType | null, localCourseId?: number | null, goalStatus?: DisplayedGoalStatus | null } | null> };
 
 export type GlobalSearchProjectsSearchResultFragment = { __typename?: 'ProjectsSearchResult', count?: number | null, projects: Array<{ __typename?: 'StudentProjectInfo', studentTaskId?: string | null, status?: DisplayedGoalStatus | null, finalPercentage?: number | null, finalPoint?: number | null, executionType?: ModuleExecutionType | null, project: { __typename?: 'Goal', goalId: string, goalName: string } } | null> };
@@ -58364,6 +58941,11 @@ export type GetUserRestrictionsInfoQueryVariables = Exact<{ [key: string]: never
 
 export type GetUserRestrictionsInfoQuery = { __typename?: 'Query', school21?: { __typename?: 'School21Queries', getUserRestrictions: Array<{ __typename?: 'UserRestriction', restrictionId: string, restrictionType: string, userId: string, schoolId: string, isActive: boolean, createdTs: Date, updatedTs?: Date | null } | null> } | null };
 
+export type GetIsApiDocumentationEnabledQueryVariables = Exact<{ [key: string]: never; }>;
+
+
+export type GetIsApiDocumentationEnabledQuery = { __typename?: 'Query', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckQueries', isOpenApiAllowed: boolean } | null };
+
 export type GetTournamentNotificationResultsQueryVariables = Exact<{ [key: string]: never; }>;
 
 
@@ -58431,7 +59013,7 @@ export type GetAsapWidgetsQuery = { __typename?: 'Query', ASAP?: { __typename?: 
 export type DashboardHeaderGetInfoQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type DashboardHeaderGetInfoQuery = { __typename?: 'Query', user?: { __typename?: 'UserQueries', getCurrentUser: { __typename?: 'User', id: string, login?: string | null, avatarUrl: string, firstName: string, middleName?: string | null, lastName: string, currentSchoolStudentId?: string | null, studentRoles?: Array<{ __typename?: 'StudentRole', id: string, status: RoleStatus, school: { __typename?: 'SafeSchool', id: string, shortName: string } }> | null } } | null, student?: { __typename?: 'StudentQueries', getUserTournamentWidget: { __typename?: 'UserTournamentWidget', coalitionMember?: { __typename?: 'CoalitionMember', coalition: { __typename?: 'GameCoalition', avatarUrl: string, color: string, name: string, memberCount: number }, currentTournamentPowerRank?: { __typename?: 'CoalitionMemberPowerRank', rank: number } | null } | null, lastTournamentResult?: { __typename?: 'UserTournamentResult', userRank: number } | null }, getExperience: { __typename?: 'UserExperience', id: string, value: number, cookiesCount: number, coinsCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', id: number, range: { __typename?: 'ExperienceLevelRange', id: string, levelCode: number, rightBorder: number, leftBorder: number } } } } | null };
+export type DashboardHeaderGetInfoQuery = { __typename?: 'Query', user?: { __typename?: 'UserQueries', getCurrentUser: { __typename?: 'User', id: string, login?: string | null, avatarUrl: string, firstName: string, middleName?: string | null, lastName: string, currentSchoolStudentId?: string | null, studentRoles?: Array<{ __typename?: 'StudentRole', id: string, status: RoleStatus, school: { __typename?: 'SafeSchool', id: string, shortName: string } }> | null } } | null, student?: { __typename?: 'StudentQueries', getUserTournamentWidget: { __typename?: 'UserTournamentWidget', coalitionMember?: { __typename?: 'CoalitionMember', coalition: { __typename?: 'GameCoalition', avatarUrl: string, color: string, name: string, memberCount: number }, currentTournamentPowerRank?: { __typename?: 'CoalitionMemberPowerRank', rank: number } | null } | null, lastTournamentResult?: { __typename?: 'UserTournamentResult', userRank: number } | null }, getExperience: { __typename?: 'UserExperience', id: string, value: number, cookiesCount: number, coinsCount: number, codeReviewPoints: number, isReviewPointsConsistent?: boolean | null, level: { __typename?: 'ExperienceLevel', id: number, range: { __typename?: 'ExperienceLevelRange', id: string, levelCode: number, rightBorder: number, leftBorder: number } } } } | null };
 
 export type GetStudentStageGroupS21QueryVariables = Exact<{
   studentId: Scalars['UUID']['input'];
@@ -58906,14 +59488,14 @@ export type CapitulationFromTheCourseMutationVariables = Exact<{
 
 export type CapitulationFromTheCourseMutation = { __typename?: 'Mutation', student?: { __typename?: 'StudentMutations', capitulationFromTheCourse: { __typename?: 'StudentCourseModel', finalPoint?: number | null } } | null };
 
-export type LocalCourseFragment = { __typename?: 'LocalCourseGoalInformation', localCourseGoalId: string, goalId: string, goalName: string, description: string, projectHours: number, signUpDate?: Date | null, beginDate?: Date | null, deadlineDate?: Date | null, checkDate?: Date | null, isContentAvailable: boolean, executionType: ModuleExecutionType, finalPoint: number, finalPercentage: number, status: DisplayedGoalStatus, deadlineFree?: boolean | null, retriesUsed?: number | null, retrySettings?: { __typename?: 'ModuleAttemptsSettings', maxModuleAttempts?: number | null, isUnlimitedAttempts: boolean } | null };
+export type LocalCourseFragment = { __typename?: 'LocalCourseGoalInformation', localCourseGoalId: string, goalId: string, goalName: string, description: string, projectHours: number, signUpDate?: Date | null, beginDate?: Date | null, deadlineDate?: Date | null, checkDate?: Date | null, isContentAvailable: boolean, executionType: ModuleExecutionType, finalPoint: number, finalPercentage: number, status: DisplayedGoalStatus, periodSettings?: PeriodSettings | null, retriesUsed?: number | null, retrySettings?: { __typename?: 'ModuleAttemptsSettings', maxModuleAttempts?: number | null, isUnlimitedAttempts: boolean } | null };
 
 export type GetLocalCourseGoalsQueryVariables = Exact<{
   localCourseId: Scalars['ID']['input'];
 }>;
 
 
-export type GetLocalCourseGoalsQuery = { __typename?: 'Query', course?: { __typename?: 'CourseQueries', getLocalCourseGoals: { __typename?: 'LocalCourseGoals', localCourseId: string, globalCourseId: string, courseName: string, courseType: CourseType, localCourseGoals?: Array<{ __typename?: 'LocalCourseGoalInformation', localCourseGoalId: string, goalId: string, goalName: string, description: string, projectHours: number, signUpDate?: Date | null, beginDate?: Date | null, deadlineDate?: Date | null, checkDate?: Date | null, isContentAvailable: boolean, executionType: ModuleExecutionType, finalPoint: number, finalPercentage: number, status: DisplayedGoalStatus, deadlineFree?: boolean | null, retriesUsed?: number | null, retrySettings?: { __typename?: 'ModuleAttemptsSettings', maxModuleAttempts?: number | null, isUnlimitedAttempts: boolean } | null }> | null } } | null };
+export type GetLocalCourseGoalsQuery = { __typename?: 'Query', course?: { __typename?: 'CourseQueries', getLocalCourseGoals: { __typename?: 'LocalCourseGoals', localCourseId: string, globalCourseId: string, courseName: string, courseType: CourseType, localCourseGoals?: Array<{ __typename?: 'LocalCourseGoalInformation', localCourseGoalId: string, goalId: string, goalName: string, description: string, projectHours: number, signUpDate?: Date | null, beginDate?: Date | null, deadlineDate?: Date | null, checkDate?: Date | null, isContentAvailable: boolean, executionType: ModuleExecutionType, finalPoint: number, finalPercentage: number, status: DisplayedGoalStatus, periodSettings?: PeriodSettings | null, retriesUsed?: number | null, retrySettings?: { __typename?: 'ModuleAttemptsSettings', maxModuleAttempts?: number | null, isUnlimitedAttempts: boolean } | null }> | null } } | null };
 
 export type FinishCourseMutationVariables = Exact<{
   localCourseId: Scalars['ID']['input'];
@@ -58983,14 +59565,6 @@ export type GetGoalAttemptStatisticQueryVariables = Exact<{
 
 
 export type GetGoalAttemptStatisticQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getGoalAttemptStatistic?: Array<{ __typename?: 'StudentGoalAttemptStatistic', finalPercentage: number, pointProject: number, resultModuleCompletion: ResultModuleCompletion, resultDate: Date } | null> | null } | null };
-
-export type LimitationRightsCreateDeadlineShiftRequestMutationVariables = Exact<{
-  deadlineId: Scalars['UUID']['input'];
-  comment: Scalars['String']['input'];
-}>;
-
-
-export type LimitationRightsCreateDeadlineShiftRequestMutation = { __typename?: 'Mutation', student?: { __typename?: 'StudentMutations', createDeadlineShiftRequest?: { __typename?: 'DeadlineShiftRequest', deadlineShiftRequestId: string } | null } | null };
 
 export type AddToFavouritesMutationVariables = Exact<{
   videoId: Scalars['UUID']['input'];
@@ -59077,7 +59651,7 @@ export type SaveSolutionCommentMutationVariables = Exact<{
 
 export type SaveSolutionCommentMutation = { __typename?: 'Mutation', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckMutations', saveSolutionComment: { __typename?: 'StudentAnswerComment', studentAnswerId: string, comment: string } } | null };
 
-export type StudyProcessFileFragment = { __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, creatorLogin: string, fileExtension: string };
+export type StudyProcessFileFragment = { __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null };
 
 export type MarkFileSolutionPendingMutationVariables = Exact<{
   taskId: Scalars['ID']['input'];
@@ -59085,7 +59659,7 @@ export type MarkFileSolutionPendingMutationVariables = Exact<{
 }>;
 
 
-export type MarkFileSolutionPendingMutation = { __typename?: 'Mutation', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckMutations', markFileSolutionPending: Array<{ __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, creatorLogin: string, fileExtension: string }> } | null };
+export type MarkFileSolutionPendingMutation = { __typename?: 'Mutation', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckMutations', markFileSolutionPending: Array<{ __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null }> } | null };
 
 export type MarkFileSolutionFailedToUploadMutationVariables = Exact<{
   taskId: Scalars['ID']['input'];
@@ -59093,7 +59667,7 @@ export type MarkFileSolutionFailedToUploadMutationVariables = Exact<{
 }>;
 
 
-export type MarkFileSolutionFailedToUploadMutation = { __typename?: 'Mutation', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckMutations', markFileSolutionFailedToUpload: Array<{ __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, creatorLogin: string, fileExtension: string }> } | null };
+export type MarkFileSolutionFailedToUploadMutation = { __typename?: 'Mutation', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckMutations', markFileSolutionFailedToUpload: Array<{ __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null }> } | null };
 
 export type MarkFileSolutionUploadCancelledMutationVariables = Exact<{
   taskId: Scalars['ID']['input'];
@@ -59101,15 +59675,15 @@ export type MarkFileSolutionUploadCancelledMutationVariables = Exact<{
 }>;
 
 
-export type MarkFileSolutionUploadCancelledMutation = { __typename?: 'Mutation', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckMutations', markFileSolutionUploadCancelled: { __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, creatorLogin: string, fileExtension: string } } | null };
+export type MarkFileSolutionUploadCancelledMutation = { __typename?: 'Mutation', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckMutations', markFileSolutionUploadCancelled: { __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null } } | null };
 
-export type MarkFileSolutionUploadedMutationVariables = Exact<{
+export type MarkFileSolutionUploadedStatusMutationVariables = Exact<{
   taskId: Scalars['ID']['input'];
-  fileUploadEvents: Array<StudyProcessFileUploadInput> | StudyProcessFileUploadInput;
+  studyProcessFileIds: Array<Scalars['ID']['input']> | Scalars['ID']['input'];
 }>;
 
 
-export type MarkFileSolutionUploadedMutation = { __typename?: 'Mutation', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckMutations', markFileSolutionUploaded: Array<{ __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, creatorLogin: string, fileExtension: string }> } | null };
+export type MarkFileSolutionUploadedStatusMutation = { __typename?: 'Mutation', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckMutations', markFileSolutionUploadedStatus: Array<{ __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null }> } | null };
 
 export type GetPenaltiesCountQueryVariables = Exact<{
   statuses: Array<InputMaybe<Scalars['String']['input']>> | InputMaybe<Scalars['String']['input']>;
@@ -59488,7 +60062,7 @@ export type TeamSettingsInfoFragment = { __typename?: 'TeamSettings', teamCreate
 
 export type StudentsCodeReviewFragment = { __typename?: 'StudentCodeReviewsWithCountRound', countRound1: number, countRound2: number, codeReviewsInfo?: { __typename?: 'CodeReviewChecksInfo', maxCodeReviewCount: number, codeReviewDuration: number, codeReviewCost: number } | null };
 
-export type ModuleCoverInfoFragment = { __typename?: 'ModuleCoverInformation', isOwnStudentTimeline?: boolean | null, softSkills: Array<{ __typename?: 'SoftSkillPoint', softSkillId: number, softSkillName: string, totalPower: number, maxPower: number, currentUserPower: number, achievedUserPower?: number | null, teamRole?: TeamRole | null }>, timeline: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, status: TimelineItemStatus, start?: Date | null, end?: Date | null, children?: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, elementType?: TimelineElementEnum | null, status: TimelineItemStatus, start?: Date | null, end?: Date | null, order?: number | null } | null> | null }>, projectStatistics?: { __typename?: 'ProjectStatistics', registeredStudents: number, inProgressStudents: number, evaluationStudents: number, finishedStudents: number, acceptedStudents: number, failedStudents: number, retriedStudentsPercentage: number, groupProjectStatistics?: { __typename?: 'GroupProjectStatistics', inProgressTeams: number, evaluationTeams: number, finishedTeams: number, acceptedTeams: number, failedTeams: number } | null } | null };
+export type ModuleCoverInfoFragment = { __typename?: 'ModuleCoverInformation', isOwnStudentTimeline?: boolean | null, softSkills: Array<{ __typename?: 'SoftSkillPoint', softSkillId: number, softSkillName: string, totalPower: number, maxPower: number, currentUserPower: number, achievedUserPower?: number | null, teamRole?: TeamRole | null }>, timeline: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, status: TimelineItemStatus, start?: Date | null, end?: Date | null, children?: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, elementType?: TimelineElementEnum | null, status: TimelineItemStatus, start?: Date | null, end?: Date | null, order?: number | null } | null> | null }> };
 
 export type ProjectInfoFragment = { __typename?: 'StudentModule', id: string, moduleTitle: string, finalPercentage?: number | null, finalPoint?: number | null, goalExecutionType?: ModuleExecutionType | null, displayedGoalStatus?: DisplayedGoalStatus | null, accessBeforeStartProgress?: boolean | null, resultModuleCompletion?: ResultModuleCompletion | null, finishedExecutionDateByScheduler?: Date | null, durationFromStageSubjectGroupPlan?: number | null, currentAttemptNumber?: number | null, isDeadlineFree?: boolean | null, isRetryAvailable: boolean, localCourseId?: string | null, courseBaseParameters?: { __typename?: 'CourseBaseParameters', isGradedCourse: boolean } | null, teamSettings?: { __typename?: 'TeamSettings', teamCreateOption: TeamCreateOptionEnum, minAmountMember: number, maxAmountMember: number, enableSurrenderTeam?: boolean | null } | null, studyModule: { __typename?: 'StudyModule', id: string, idea: string, duration: number, goalPoint?: number | null, retrySettings?: { __typename?: 'ModuleAttemptsSettings', maxModuleAttempts?: number | null, isUnlimitedAttempts: boolean } | null, levels: Array<{ __typename?: 'StudyModuleLevel', id: string, goalElements: Array<{ __typename?: 'StudyModuleGoalElement', id: string, tasks: Array<{ __typename?: 'Task', id: string, taskId: string }> }> }> }, currentTask?: { __typename?: 'StudentTask', id: string, taskId: string, task: { __typename?: 'Task', id: string, assignmentType: TaskAssignmentEnum, taskSolutionType?: TaskSolutionTypeEnum | null, checkTypes: Array<TaskCheckEnum>, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number, maxCodeReviewCount: number, codeReviewCost: number, ciCdMode: GitlabCiCdType } }, lastAnswer?: { __typename?: 'StudentAnswer', id: string } | null, teamSettings?: { __typename?: 'TeamSettings', teamCreateOption: TeamCreateOptionEnum, minAmountMember: number, maxAmountMember: number, enableSurrenderTeam?: boolean | null } | null } | null };
 
@@ -59497,7 +60071,7 @@ export type GetProjectInfoQueryVariables = Exact<{
 }>;
 
 
-export type GetProjectInfoQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getModuleById: { __typename?: 'StudentModule', id: string, moduleTitle: string, finalPercentage?: number | null, finalPoint?: number | null, goalExecutionType?: ModuleExecutionType | null, displayedGoalStatus?: DisplayedGoalStatus | null, accessBeforeStartProgress?: boolean | null, resultModuleCompletion?: ResultModuleCompletion | null, finishedExecutionDateByScheduler?: Date | null, durationFromStageSubjectGroupPlan?: number | null, currentAttemptNumber?: number | null, isDeadlineFree?: boolean | null, isRetryAvailable: boolean, localCourseId?: string | null, courseBaseParameters?: { __typename?: 'CourseBaseParameters', isGradedCourse: boolean } | null, teamSettings?: { __typename?: 'TeamSettings', teamCreateOption: TeamCreateOptionEnum, minAmountMember: number, maxAmountMember: number, enableSurrenderTeam?: boolean | null } | null, studyModule: { __typename?: 'StudyModule', id: string, idea: string, duration: number, goalPoint?: number | null, retrySettings?: { __typename?: 'ModuleAttemptsSettings', maxModuleAttempts?: number | null, isUnlimitedAttempts: boolean } | null, levels: Array<{ __typename?: 'StudyModuleLevel', id: string, goalElements: Array<{ __typename?: 'StudyModuleGoalElement', id: string, tasks: Array<{ __typename?: 'Task', id: string, taskId: string }> }> }> }, currentTask?: { __typename?: 'StudentTask', id: string, taskId: string, task: { __typename?: 'Task', id: string, assignmentType: TaskAssignmentEnum, taskSolutionType?: TaskSolutionTypeEnum | null, checkTypes: Array<TaskCheckEnum>, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number, maxCodeReviewCount: number, codeReviewCost: number, ciCdMode: GitlabCiCdType } }, lastAnswer?: { __typename?: 'StudentAnswer', id: string } | null, teamSettings?: { __typename?: 'TeamSettings', teamCreateOption: TeamCreateOptionEnum, minAmountMember: number, maxAmountMember: number, enableSurrenderTeam?: boolean | null } | null } | null }, getModuleCoverInformation?: { __typename?: 'ModuleCoverInformation', isOwnStudentTimeline?: boolean | null, softSkills: Array<{ __typename?: 'SoftSkillPoint', softSkillId: number, softSkillName: string, totalPower: number, maxPower: number, currentUserPower: number, achievedUserPower?: number | null, teamRole?: TeamRole | null }>, timeline: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, status: TimelineItemStatus, start?: Date | null, end?: Date | null, children?: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, elementType?: TimelineElementEnum | null, status: TimelineItemStatus, start?: Date | null, end?: Date | null, order?: number | null } | null> | null }>, projectStatistics?: { __typename?: 'ProjectStatistics', registeredStudents: number, inProgressStudents: number, evaluationStudents: number, finishedStudents: number, acceptedStudents: number, failedStudents: number, retriedStudentsPercentage: number, groupProjectStatistics?: { __typename?: 'GroupProjectStatistics', inProgressTeams: number, evaluationTeams: number, finishedTeams: number, acceptedTeams: number, failedTeams: number } | null } | null } | null, getP2PChecksInfo?: { __typename?: 'P2PChecksInfo', cookiesCount: number, periodOfVerification: number, projectReviewsInfo: { __typename?: 'ProjectReviewsInfo', reviewByStudentCount: number, relevantReviewByStudentsCount: number, reviewByInspectionStaffCount: number, relevantReviewByInspectionStaffCount: number } } | null, getStudentCodeReviewByGoalId: { __typename?: 'StudentCodeReviewsWithCountRound', countRound1: number, countRound2: number, codeReviewsInfo?: { __typename?: 'CodeReviewChecksInfo', maxCodeReviewCount: number, codeReviewDuration: number, codeReviewCost: number } | null } } | null };
+export type GetProjectInfoQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getModuleById: { __typename?: 'StudentModule', id: string, moduleTitle: string, finalPercentage?: number | null, finalPoint?: number | null, goalExecutionType?: ModuleExecutionType | null, displayedGoalStatus?: DisplayedGoalStatus | null, accessBeforeStartProgress?: boolean | null, resultModuleCompletion?: ResultModuleCompletion | null, finishedExecutionDateByScheduler?: Date | null, durationFromStageSubjectGroupPlan?: number | null, currentAttemptNumber?: number | null, isDeadlineFree?: boolean | null, isRetryAvailable: boolean, localCourseId?: string | null, courseBaseParameters?: { __typename?: 'CourseBaseParameters', isGradedCourse: boolean } | null, teamSettings?: { __typename?: 'TeamSettings', teamCreateOption: TeamCreateOptionEnum, minAmountMember: number, maxAmountMember: number, enableSurrenderTeam?: boolean | null } | null, studyModule: { __typename?: 'StudyModule', id: string, idea: string, duration: number, goalPoint?: number | null, retrySettings?: { __typename?: 'ModuleAttemptsSettings', maxModuleAttempts?: number | null, isUnlimitedAttempts: boolean } | null, levels: Array<{ __typename?: 'StudyModuleLevel', id: string, goalElements: Array<{ __typename?: 'StudyModuleGoalElement', id: string, tasks: Array<{ __typename?: 'Task', id: string, taskId: string }> }> }> }, currentTask?: { __typename?: 'StudentTask', id: string, taskId: string, task: { __typename?: 'Task', id: string, assignmentType: TaskAssignmentEnum, taskSolutionType?: TaskSolutionTypeEnum | null, checkTypes: Array<TaskCheckEnum>, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number, maxCodeReviewCount: number, codeReviewCost: number, ciCdMode: GitlabCiCdType } }, lastAnswer?: { __typename?: 'StudentAnswer', id: string } | null, teamSettings?: { __typename?: 'TeamSettings', teamCreateOption: TeamCreateOptionEnum, minAmountMember: number, maxAmountMember: number, enableSurrenderTeam?: boolean | null } | null } | null }, getModuleCoverInformation?: { __typename?: 'ModuleCoverInformation', isOwnStudentTimeline?: boolean | null, softSkills: Array<{ __typename?: 'SoftSkillPoint', softSkillId: number, softSkillName: string, totalPower: number, maxPower: number, currentUserPower: number, achievedUserPower?: number | null, teamRole?: TeamRole | null }>, timeline: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, status: TimelineItemStatus, start?: Date | null, end?: Date | null, children?: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, elementType?: TimelineElementEnum | null, status: TimelineItemStatus, start?: Date | null, end?: Date | null, order?: number | null } | null> | null }> } | null, getP2PChecksInfo?: { __typename?: 'P2PChecksInfo', cookiesCount: number, periodOfVerification: number, projectReviewsInfo: { __typename?: 'ProjectReviewsInfo', reviewByStudentCount: number, relevantReviewByStudentsCount: number, reviewByInspectionStaffCount: number, relevantReviewByInspectionStaffCount: number } } | null, getStudentCodeReviewByGoalId: { __typename?: 'StudentCodeReviewsWithCountRound', countRound1: number, countRound2: number, codeReviewsInfo?: { __typename?: 'CodeReviewChecksInfo', maxCodeReviewCount: number, codeReviewDuration: number, codeReviewCost: number } | null } } | null };
 
 export type GetStageInfoQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -59662,11 +60236,18 @@ export type GetPlatfSolutionQueryVariables = Exact<{
 export type GetPlatfSolutionQuery = { __typename?: 'Query', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckQueries', getPlatfSolutionInfo?: { __typename?: 'PlatfSolutionInfo', comment?: string | null, files: Array<{ __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum } | null> } | null } | null };
 
 export type GetLinkToPrivateStudentGitlabProjectByAnswerIdQueryVariables = Exact<{
-  studentAnswerId: Scalars['ID']['input'];
+  answerId: Scalars['ID']['input'];
 }>;
 
 
-export type GetLinkToPrivateStudentGitlabProjectByAnswerIdQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getLinkToPrivateStudentGitlabProjectByAnswerId: { __typename?: 'GitlabLink', httpsLink: string, sshLink: string } } | null };
+export type GetLinkToPrivateStudentGitlabProjectByAnswerIdQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getPrivateGitlabProjectLinkInfoByAnswerId: { __typename?: 'GitlabLinksWithReadinessStatus', httpsLink?: string | null, sshLink?: string | null, status: GitlabProjectLinksReadyToUseStatus } } | null };
+
+export type GetProjectStatisticsQueryVariables = Exact<{
+  goalId: Scalars['ID']['input'];
+}>;
+
+
+export type GetProjectStatisticsQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getProjectStatistics?: { __typename?: 'ProjectStatistics', registeredStudents: number, inProgressStudents: number, evaluationStudents: number, finishedStudents: number, acceptedStudents: number, failedStudents: number, retriedStudentsPercentage: number, groupProjectStatistics?: { __typename?: 'GroupProjectStatistics', inProgressTeams: number, evaluationTeams: number, finishedTeams: number, acceptedTeams: number, failedTeams: number } | null } | null } | null };
 
 export type CheckCodeReviewPointsMutationVariables = Exact<{
   goalId: Scalars['ID']['input'];
@@ -59764,7 +60345,7 @@ export type PublicProfileGetPersonalInfoQueryVariables = Exact<{
 }>;
 
 
-export type PublicProfileGetPersonalInfoQuery = { __typename?: 'Query', school21?: { __typename?: 'School21Queries', getAvatarByUserId?: string | null, getEmailbyUserId?: string | null, getStageGroupS21PublicProfile?: { __typename?: 'StageGroupS21', waveId: number, waveName: string, eduForm: string } | null, getExperiencePublicProfile?: { __typename?: 'UserExperience', value: number, cookiesCount: number, coinsCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', levelCode: number, range: { __typename?: 'ExperienceLevelRange', leftBorder: number, rightBorder: number } } } | null, getClassRoomByLogin?: { __typename?: 'ClassRoom', id: string, number: string, floor: number } | null } | null, student?: { __typename?: 'StudentQueries', getWorkstationByLogin?: { __typename?: 'WorkstationModel', workstationId: number, hostName?: string | null, row?: string | null, number?: number | null } | null, getFeedbackStatisticsAverageScore: { __typename?: 'FeedbackStatisticsAverageScore', countFeedback: number, feedbackAverageScore?: Array<{ __typename?: 'FeedbackAverageScore', categoryCode?: string | null, categoryName?: string | null, value?: string | null } | null> | null } } | null, user?: { __typename?: 'UserQueries', getSchool: { __typename?: 'SafeSchool', id: string, fullName: string, shortName: string, address: string } } | null };
+export type PublicProfileGetPersonalInfoQuery = { __typename?: 'Query', school21?: { __typename?: 'School21Queries', getAvatarByUserId?: string | null, getEmailbyUserId?: string | null, getStageGroupS21PublicProfile?: { __typename?: 'StageGroupS21', waveId: number, waveName: string, eduForm: string } | null, getExperiencePublicProfile?: { __typename?: 'UserExperience', value: number, cookiesCount: number, coinsCount: number, codeReviewPoints: number, isReviewPointsConsistent?: boolean | null, level: { __typename?: 'ExperienceLevel', levelCode: number, range: { __typename?: 'ExperienceLevelRange', leftBorder: number, rightBorder: number } } } | null, getClassRoomByLogin?: { __typename?: 'ClassRoom', id: string, number: string, floor: number } | null } | null, student?: { __typename?: 'StudentQueries', getWorkstationByLogin?: { __typename?: 'WorkstationModel', workstationId: number, hostName?: string | null, row?: string | null, number?: number | null } | null, getFeedbackStatisticsAverageScore: { __typename?: 'FeedbackStatisticsAverageScore', countFeedback: number, feedbackAverageScore?: Array<{ __typename?: 'FeedbackAverageScore', categoryCode?: string | null, categoryName?: string | null, value?: string | null } | null> | null } } | null, user?: { __typename?: 'UserQueries', getSchool: { __typename?: 'SafeSchool', id: string, fullName: string, shortName: string, address: string } } | null };
 
 export type PublicProfileGetSoftSkillsQueryVariables = Exact<{
   studentId: Scalars['UUID']['input'];
@@ -59810,7 +60391,7 @@ export type GetProjectInfoByStudentQueryVariables = Exact<{
 }>;
 
 
-export type GetProjectInfoByStudentQuery = { __typename?: 'Query', school21?: { __typename?: 'School21Queries', getModuleById: { __typename?: 'StudentModule', id: string, moduleTitle: string, finalPercentage?: number | null, finalPoint?: number | null, goalExecutionType?: ModuleExecutionType | null, displayedGoalStatus?: DisplayedGoalStatus | null, accessBeforeStartProgress?: boolean | null, resultModuleCompletion?: ResultModuleCompletion | null, finishedExecutionDateByScheduler?: Date | null, durationFromStageSubjectGroupPlan?: number | null, currentAttemptNumber?: number | null, isDeadlineFree?: boolean | null, isRetryAvailable: boolean, localCourseId?: string | null, courseBaseParameters?: { __typename?: 'CourseBaseParameters', isGradedCourse: boolean } | null, teamSettings?: { __typename?: 'TeamSettings', teamCreateOption: TeamCreateOptionEnum, minAmountMember: number, maxAmountMember: number, enableSurrenderTeam?: boolean | null } | null, studyModule: { __typename?: 'StudyModule', id: string, idea: string, duration: number, goalPoint?: number | null, retrySettings?: { __typename?: 'ModuleAttemptsSettings', maxModuleAttempts?: number | null, isUnlimitedAttempts: boolean } | null, levels: Array<{ __typename?: 'StudyModuleLevel', id: string, goalElements: Array<{ __typename?: 'StudyModuleGoalElement', id: string, tasks: Array<{ __typename?: 'Task', id: string, taskId: string }> }> }> }, currentTask?: { __typename?: 'StudentTask', id: string, taskId: string, task: { __typename?: 'Task', id: string, assignmentType: TaskAssignmentEnum, taskSolutionType?: TaskSolutionTypeEnum | null, checkTypes: Array<TaskCheckEnum>, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number, maxCodeReviewCount: number, codeReviewCost: number, ciCdMode: GitlabCiCdType } }, lastAnswer?: { __typename?: 'StudentAnswer', id: string } | null, teamSettings?: { __typename?: 'TeamSettings', teamCreateOption: TeamCreateOptionEnum, minAmountMember: number, maxAmountMember: number, enableSurrenderTeam?: boolean | null } | null } | null }, getModuleCoverInformation?: { __typename?: 'ModuleCoverInformation', isOwnStudentTimeline?: boolean | null, softSkills: Array<{ __typename?: 'SoftSkillPoint', softSkillId: number, softSkillName: string, totalPower: number, maxPower: number, currentUserPower: number, achievedUserPower?: number | null, teamRole?: TeamRole | null }>, timeline: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, status: TimelineItemStatus, start?: Date | null, end?: Date | null, children?: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, elementType?: TimelineElementEnum | null, status: TimelineItemStatus, start?: Date | null, end?: Date | null, order?: number | null } | null> | null }>, projectStatistics?: { __typename?: 'ProjectStatistics', registeredStudents: number, inProgressStudents: number, evaluationStudents: number, finishedStudents: number, acceptedStudents: number, failedStudents: number, retriedStudentsPercentage: number, groupProjectStatistics?: { __typename?: 'GroupProjectStatistics', inProgressTeams: number, evaluationTeams: number, finishedTeams: number, acceptedTeams: number, failedTeams: number } | null } | null } | null, getP2PChecksInfo?: { __typename?: 'P2PChecksInfo', cookiesCount: number, periodOfVerification: number, projectReviewsInfo: { __typename?: 'ProjectReviewsInfo', reviewByStudentCount: number, relevantReviewByStudentsCount: number, reviewByInspectionStaffCount: number, relevantReviewByInspectionStaffCount: number } } | null, getGoalRetryInfo: { __typename?: 'StudentGoalRetryInfo', totalRetryValue: number, usedRetryCount: number, unlimitedAttempts: boolean } } | null };
+export type GetProjectInfoByStudentQuery = { __typename?: 'Query', school21?: { __typename?: 'School21Queries', getModuleById: { __typename?: 'StudentModule', id: string, moduleTitle: string, finalPercentage?: number | null, finalPoint?: number | null, goalExecutionType?: ModuleExecutionType | null, displayedGoalStatus?: DisplayedGoalStatus | null, accessBeforeStartProgress?: boolean | null, resultModuleCompletion?: ResultModuleCompletion | null, finishedExecutionDateByScheduler?: Date | null, durationFromStageSubjectGroupPlan?: number | null, currentAttemptNumber?: number | null, isDeadlineFree?: boolean | null, isRetryAvailable: boolean, localCourseId?: string | null, courseBaseParameters?: { __typename?: 'CourseBaseParameters', isGradedCourse: boolean } | null, teamSettings?: { __typename?: 'TeamSettings', teamCreateOption: TeamCreateOptionEnum, minAmountMember: number, maxAmountMember: number, enableSurrenderTeam?: boolean | null } | null, studyModule: { __typename?: 'StudyModule', id: string, idea: string, duration: number, goalPoint?: number | null, retrySettings?: { __typename?: 'ModuleAttemptsSettings', maxModuleAttempts?: number | null, isUnlimitedAttempts: boolean } | null, levels: Array<{ __typename?: 'StudyModuleLevel', id: string, goalElements: Array<{ __typename?: 'StudyModuleGoalElement', id: string, tasks: Array<{ __typename?: 'Task', id: string, taskId: string }> }> }> }, currentTask?: { __typename?: 'StudentTask', id: string, taskId: string, task: { __typename?: 'Task', id: string, assignmentType: TaskAssignmentEnum, taskSolutionType?: TaskSolutionTypeEnum | null, checkTypes: Array<TaskCheckEnum>, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number, maxCodeReviewCount: number, codeReviewCost: number, ciCdMode: GitlabCiCdType } }, lastAnswer?: { __typename?: 'StudentAnswer', id: string } | null, teamSettings?: { __typename?: 'TeamSettings', teamCreateOption: TeamCreateOptionEnum, minAmountMember: number, maxAmountMember: number, enableSurrenderTeam?: boolean | null } | null } | null }, getModuleCoverInformation?: { __typename?: 'ModuleCoverInformation', isOwnStudentTimeline?: boolean | null, softSkills: Array<{ __typename?: 'SoftSkillPoint', softSkillId: number, softSkillName: string, totalPower: number, maxPower: number, currentUserPower: number, achievedUserPower?: number | null, teamRole?: TeamRole | null }>, timeline: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, status: TimelineItemStatus, start?: Date | null, end?: Date | null, children?: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, elementType?: TimelineElementEnum | null, status: TimelineItemStatus, start?: Date | null, end?: Date | null, order?: number | null } | null> | null }> } | null, getP2PChecksInfo?: { __typename?: 'P2PChecksInfo', cookiesCount: number, periodOfVerification: number, projectReviewsInfo: { __typename?: 'ProjectReviewsInfo', reviewByStudentCount: number, relevantReviewByStudentsCount: number, reviewByInspectionStaffCount: number, relevantReviewByInspectionStaffCount: number } } | null, getGoalRetryInfo: { __typename?: 'StudentGoalRetryInfo', totalRetryValue: number, usedRetryCount: number, unlimitedAttempts: boolean } } | null };
 
 export type TeamMemberWithRoleFragment = { __typename?: 'TeamMember', role: TeamRole, user?: { __typename?: 'User', id: string, avatarUrl: string, login?: string | null, activeSchoolShortName?: string | null, userExperience?: { __typename?: 'UserExperience', cookiesCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', id: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null } | null };
 
