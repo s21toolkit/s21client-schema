@@ -13472,6 +13472,15 @@ export type DeleteGitlabProjectsResponse = {
   success: Scalars['Boolean']['output'];
 };
 
+export type DetailTrajectoryBtcInputModel = {
+  /** Начало диапазона плановой даты начала обучения */
+  planStartDateFrom?: InputMaybe<Scalars['Date']['input']>;
+  /** Конец диапазона плановой даты начала обучения */
+  planStartDateTo?: InputMaybe<Scalars['Date']['input']>;
+  /** Траектории, фильтр по траекториям. Null, если не нужно фильтровать по траекториям */
+  trajectories?: InputMaybe<Array<Scalars['String']['input']>>;
+};
+
 /** Уровень сложности задания */
 export enum DifficultyLevelEnum {
   Difficult = 'DIFFICULT',
@@ -14848,6 +14857,16 @@ export type ElectronicJournalQueriesGetStudentJournalMarksInPeriodsForParentArgs
   studyPeriodIds: Array<Scalars['ID']['input']>;
   subjectId: Scalars['ID']['input'];
 };
+
+/** Статусы верификации университетсклй почты */
+export enum EmailConfirmationStatus {
+  /** Почта подтверждена */
+  Confirmed = 'CONFIRMED',
+  /** Не подтверждена */
+  NotConfirmed = 'NOT_CONFIRMED',
+  /** Ожилание получения кода подтверждения */
+  WaitingForConfirmationCode = 'WAITING_FOR_CONFIRMATION_CODE'
+}
 
 export type EnabledWidget = {
   __typename?: 'EnabledWidget';
@@ -16559,6 +16578,23 @@ export enum FeedbackCategoryValueEnum {
   ProbablyGood = 'PROBABLY_GOOD'
 }
 
+export type FeedbackFilterInputModel = {
+  /** Фильтры по дате создания жалобы */
+  dateFrom?: InputMaybe<Scalars['DateTime']['input']>;
+  dateTo?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Модуль в котором оставили отзыв */
+  moduleId?: InputMaybe<Scalars['ID']['input']>;
+  /** Параметры пагинации */
+  paging?: InputMaybe<PagingInput>;
+  /** Рейтинг */
+  rating?: InputMaybe<Scalars['Int']['input']>;
+  rootPath?: InputMaybe<Scalars['String']['input']>;
+  /** Идентификатор задания */
+  taskId?: InputMaybe<Scalars['ID']['input']>;
+  /** Строка поиска */
+  textSearch?: InputMaybe<Scalars['String']['input']>;
+};
+
 /** S21. Форма для обратной связи */
 export type FeedbackForm = {
   __typename?: 'FeedbackForm';
@@ -16637,6 +16673,16 @@ export type FeedbackOnParticipant = {
   /** Роль участника в команде */
   role?: Maybe<TeamRole>;
   /** Участник */
+  user: User;
+};
+
+export type FeedbackReportBtc = {
+  __typename?: 'FeedbackReportBTC';
+  comment?: Maybe<Scalars['String']['output']>;
+  createTs: Scalars['DateTime']['output'];
+  feedbackId: Scalars['ID']['output'];
+  rating: Scalars['Int']['output'];
+  task: Task;
   user: User;
 };
 
@@ -36039,6 +36085,8 @@ export type StudentMutations = {
   saveStudentSoftSkillGoals: Array<Maybe<StudentSoftSkillGoal>>;
   /** Сохранение статуса показа тултипов */
   saveStudentTooltipStatus: Scalars['ID']['output'];
+  /** Сохранение информации по соответствию ученика и его университетской почты */
+  saveStudentUniversityEmail: Scalars['ID']['output'];
   /** Сохранить желаемый целевой уровень модуля */
   saveTargetGoalLevel: StudentTargetGoalLevel;
   /** Изменяет Траекторию по идентификатору Траектории (ersonal_trajectories.personal_trajectory_id) */
@@ -36047,8 +36095,12 @@ export type StudentMutations = {
   sendInvitation: StudentInvitationInfo;
   /** Отправка студентом заявки на расформирование команды */
   sendTeamDisbandRequest: UserDisbandRequestStatus;
+  /** Изменение статуса подтверждения университетской почты */
+  setEmailConfirmationStatus?: Maybe<Scalars['Boolean']['output']>;
   /** Смена статуса заданий */
   setExternalStudentTaskStatus: StudentTask;
+  /** Установка флага показа страницы с верификацией почты */
+  setIsVisibleEmailVerificationPageFlag?: Maybe<Scalars['Boolean']['output']>;
   setMotivationBlockOpened?: Maybe<Scalars['Boolean']['output']>;
   /**
    * Переключить флаг использования нового дизайна
@@ -36636,6 +36688,11 @@ export type StudentMutationsSaveStudentTooltipStatusArgs = {
 };
 
 
+export type StudentMutationsSaveStudentUniversityEmailArgs = {
+  studentUniversityEmailInputModel: StudentUniversityEmailInputModel;
+};
+
+
 export type StudentMutationsSaveTargetGoalLevelArgs = {
   goalId: Scalars['ID']['input'];
   targetedGoalLevel: Scalars['Float']['input'];
@@ -36662,9 +36719,21 @@ export type StudentMutationsSendTeamDisbandRequestArgs = {
 };
 
 
+export type StudentMutationsSetEmailConfirmationStatusArgs = {
+  status: EmailConfirmationStatus;
+  studentId: Scalars['UUID']['input'];
+};
+
+
 export type StudentMutationsSetExternalStudentTaskStatusArgs = {
   taskId: Scalars['ID']['input'];
   taskStatus: TaskStatusEnum;
+};
+
+
+export type StudentMutationsSetIsVisibleEmailVerificationPageFlagArgs = {
+  isVisible?: InputMaybe<Scalars['Boolean']['input']>;
+  studentId: Scalars['UUID']['input'];
 };
 
 
@@ -37043,6 +37112,29 @@ export type StudentProgressFilterBtcInput = {
   userIds: Array<Scalars['ID']['input']>;
 };
 
+export type StudentProgressFilterBtcInputModelV2 = {
+  /** Буткемп-мастер */
+  bootcampMaster?: InputMaybe<Scalars['UUID']['input']>;
+  /** Детализация фильтра (Если не null -> По траектории студента) */
+  detailTrajectory?: InputMaybe<DetailTrajectoryBtcInputModel>;
+  /** Имена колонок, которые следует возвращать */
+  filters?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Идентификаторы модулей */
+  goalIds: Array<Scalars['ID']['input']>;
+  /** Формат прохождения */
+  isStudyOnline?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Пагинация */
+  paging: PagingInput;
+  /** Идентификаторы классов */
+  stageGroupIds: Array<Scalars['ID']['input']>;
+  /** Идентификаторы параллелей */
+  stageIds: Array<Scalars['ID']['input']>;
+  /** Город ученика */
+  studentCity?: InputMaybe<Scalars['String']['input']>;
+  /** Идентификаторы пользоваталей */
+  userIds: Array<Scalars['ID']['input']>;
+};
+
 /** Фильтр для запроса прогресса учащихся (по пересечению) */
 export type StudentProgressFilterInput = {
   /** Учебные годы */
@@ -37069,6 +37161,62 @@ export type StudentProgressFilterInput = {
   trajectories?: InputMaybe<Array<Scalars['String']['input']>>;
   /** Идентификаторы пользоваталей */
   userIds: Array<Scalars['ID']['input']>;
+};
+
+export type StudentProgressForBtcModel = {
+  __typename?: 'StudentProgressForBTCModel';
+  /** Фактическая трудоемкость (часы) */
+  actualLaboriousness?: Maybe<Scalars['Int']['output']>;
+  /** Имя Буткемп-мастера */
+  bootcampMaster?: Maybe<Scalars['String']['output']>;
+  /** Email ученика */
+  email?: Maybe<Scalars['String']['output']>;
+  /** Имя ученика */
+  firstName: Scalars['String']['output'];
+  /** Формат обучения */
+  isStudyOnline?: Maybe<Scalars['Boolean']['output']>;
+  /** Плановая трудоёмкость (часы) */
+  laboriousness?: Maybe<Scalars['Int']['output']>;
+  /** Плановая трудоёмкость (дни) */
+  laboriousnessDays?: Maybe<Scalars['Int']['output']>;
+  /** Дата последнего входа */
+  lastAuthorizationDate?: Maybe<Scalars['DateTime']['output']>;
+  /** Фамилия ученика */
+  lastName: Scalars['String']['output'];
+  /** Логин ученика */
+  login?: Maybe<Scalars['String']['output']>;
+  /** Отчество ученика */
+  middleName?: Maybe<Scalars['String']['output']>;
+  /** Плановая дата окончания */
+  personalEndDate?: Maybe<Scalars['DateTime']['output']>;
+  personalStartDate?: Maybe<Scalars['Date']['output']>;
+  /** Плановая дата начла */
+  planStartDate?: Maybe<Scalars['DateTime']['output']>;
+  /**
+   * Прогресс прохождения всех запланированных модулей в процентах.
+   * (достигнутый уровень/целевой уровень)
+   */
+  progress?: Maybe<Scalars['Int']['output']>;
+  /** Прогресс по фильтру относительно выбранных в фильтре модулей */
+  progressByFilter?: Maybe<Scalars['Int']['output']>;
+  /** Прогресс прохождения всех модулей в процентах. (пройденные уровени модулей / запланированные уровени модулей) */
+  progressByTrajectory?: Maybe<Scalars['Int']['output']>;
+  /** информация пользователя из АС Пульс */
+  pulsePerson?: Maybe<PulsePersonSmallModel>;
+  /** Фактическая дата окончания */
+  realEndDate?: Maybe<Scalars['DateTime']['output']>;
+  /** Фактическая дата начала */
+  realStartDate?: Maybe<Scalars['DateTime']['output']>;
+  /** Город ученика */
+  studentCity?: Maybe<Scalars['String']['output']>;
+  /** Идентификатор студента (students.student_id) */
+  studentId: Scalars['ID']['output'];
+  /** Прогресс по модулям */
+  studyModuleProgress?: Maybe<Array<Maybe<StudentStudyModuleProgress>>>;
+  /** Траектория */
+  trajectory?: Maybe<Scalars['String']['output']>;
+  /** Идентификатор пользователя (users.user_id) */
+  userId: Scalars['ID']['output'];
 };
 
 /** Фильтр для запроса доступных модулей для прогресса учащихся */
@@ -37271,6 +37419,8 @@ export type StudentQueries = {
   getAllPortfolioAvatarPromptDetails: Array<Maybe<PortfolioAvatarPromptDetailModel>>;
   /** Получить список всех существующих бейджей */
   getAllPortfolioBadges: Array<Maybe<PortfolioBadge>>;
+  /** Получение списка всех университетов для Bootcamp */
+  getAllUniversities: Array<UniversityModel>;
   getAllWidgetNotificationsByTypes: Array<DeckWidgetNotification>;
   /** Получить данные для аналитического виджета */
   getAnalyticsDataAcademicPerformance?: Maybe<AnalyticsDataAcademicPerformance>;
@@ -37787,6 +37937,8 @@ export type StudentQueries = {
   getStudentTooltipStatuses: Array<StudentTooltipStatus>;
   /** получение информации по посещаемости студента в школе и за рабочей станцией, за неделю (пн-вс) входящую в date */
   getStudentTraffic: StudentTraffic;
+  /** Получение информации об университетской почте ученика по идентификатору ученика */
+  getStudentUniversityEmailInfo?: Maybe<StudentUniversityEmailModel>;
   /** Получение посещаемости студента за текущий год */
   getStudentYearAttendance: Array<Maybe<StudentAttendanceBySubject>>;
   /**
@@ -37848,6 +38000,8 @@ export type StudentQueries = {
   getTop5AndMeCoalitionTournamentMembers: Top5AndMeCoalitionTournamentMembers;
   /** Запрос результатов участия студента в турнирах */
   getTournamentResults: Array<UserTournamentResult>;
+  /** Получение списка доменов запрашиваемого университета для Bootcamp */
+  getUniversityDomains: Array<UniversityDomainModel>;
   getUserBgStickers: Array<UserBgSticker>;
   /** Просмотр истории изменения кол-ва coins */
   getUserCoinsHistory?: Maybe<Array<UserCoinsHistoryItemModel>>;
@@ -39016,6 +39170,11 @@ export type StudentQueriesGetStudentTrafficArgs = {
 };
 
 
+export type StudentQueriesGetStudentUniversityEmailInfoArgs = {
+  studentId?: InputMaybe<Scalars['UUID']['input']>;
+};
+
+
 export type StudentQueriesGetStudentsByParamsArgs = {
   stageGroupId?: InputMaybe<Scalars['ID']['input']>;
   userIds?: InputMaybe<Array<InputMaybe<Scalars['UUID']['input']>>>;
@@ -39174,6 +39333,11 @@ export type StudentQueriesGetTop5AndMeCoalitionTournamentMembersArgs = {
 
 export type StudentQueriesGetTournamentResultsArgs = {
   isShown: Scalars['Boolean']['input'];
+};
+
+
+export type StudentQueriesGetUniversityDomainsArgs = {
+  universityId: Scalars['ID']['input'];
 };
 
 
@@ -40356,6 +40520,49 @@ export type StudentTrajectoryTemplateAssignmentInputModel = {
   studentIds: Array<Scalars['ID']['input']>;
   /** Идентификатор применяемого шаблона траектории */
   trajectoryTemplateId: Scalars['ID']['input'];
+};
+
+/** Информация по верификации университетской почты ученика */
+export type StudentUniversityEmailInputModel = {
+  /** Комментарий с названием университета ученика, если такого не нашлось в справочнике с университетами */
+  comment?: InputMaybe<Scalars['String']['input']>;
+  /** Статус подтверждения университетской почты учеником */
+  confirmationStatus?: InputMaybe<EmailConfirmationStatus>;
+  /** Университетская почта */
+  email?: InputMaybe<Scalars['String']['input']>;
+  /** Флаг указания отсутсвия почты у ученика */
+  isEmailAbsent?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Флаг показа страницы с верификацией университетской почты */
+  isVisible?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Идентификатор ученика */
+  studentId: Scalars['UUID']['input'];
+  /** Идентификатор связи ученика и его университетской почты */
+  studentUniversityEmailId?: InputMaybe<Scalars['ID']['input']>;
+  /** Идентификатор университета ученика */
+  universityId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+/** Информация об университетской почте ученика */
+export type StudentUniversityEmailModel = {
+  __typename?: 'StudentUniversityEmailModel';
+  /** Комментарий с названием университета ученика, если такого не нашлось в справочнике с университетами */
+  comment?: Maybe<Scalars['String']['output']>;
+  /** Статус подтверждения университетской почты учеником */
+  confirmationStatus?: Maybe<EmailConfirmationStatus>;
+  /** Время создания записи */
+  createTs?: Maybe<Scalars['DateTime']['output']>;
+  /** Университетская почта */
+  email?: Maybe<Scalars['String']['output']>;
+  /** Флаг показа страницы с верификацией университетской почты */
+  isVisible?: Maybe<Scalars['Boolean']['output']>;
+  /** Время модификации записи */
+  modifyTs?: Maybe<Scalars['DateTime']['output']>;
+  /** Идентификатор ученика */
+  studentId: Scalars['UUID']['output'];
+  /** Идентификатор связи ученика и его университетской почты */
+  studentUniversityEmailId?: Maybe<Scalars['ID']['output']>;
+  /** Идентификатор университета ученика */
+  universityId?: Maybe<Scalars['ID']['output']>;
 };
 
 export type StudentUserInfo = {
@@ -46108,6 +46315,8 @@ export type TeacherQueries = {
   exportStudentProgressForBTC: StudentPersonalProgressReport;
   /** Эскпорт прогресса учащихся в файл для проекта Bootcamp V2 */
   exportStudentProgressForBTCV2: ReportExcelFile;
+  /** Эскпорт прогресса учащихся в формате Excel для проекта Bootcamp (версия 3, использующая report-service, объединен в один запрос) */
+  exportStudentProgressForBTCV3: ReportExcelFile;
   /** выдает список академических лет школы. Если не передать schoolId, выдаст по текущей */
   getAcademicYears: Array<AcademicYear>;
   /** Возвращает агрегированные данные для диаграммы Радар (Паутинка) */
@@ -46469,6 +46678,10 @@ export type TeacherQueries = {
   /** Запрос всех модулей с системами заданий по учебным планам учеников группы по предмету. */
   getStudentPlanGoalsWithTaskSetsForClassSubject: Array<StudentPlanGoalWithTaskSet>;
   getStudentProfile: Student;
+  /** Получить прогресс учащихся для проекта Bootcamp (версия 3, использующая report-service, объединен в один запрос) */
+  getStudentProgressForBM: Array<StudentProgressForBtcModel>;
+  /** Получить кол-во учеников по фильтру */
+  getStudentProgressForBMCount: Scalars['Int']['output'];
   /** Получение всех проектов по userId и stageGroupId */
   getStudentProjectsByStageGroup: Array<Maybe<StudentItem>>;
   /** Возвращает данные для диаграммы Радар (Паутинка) */
@@ -46917,6 +47130,11 @@ export type TeacherQueriesExportStudentProgressForBtcArgs = {
 
 export type TeacherQueriesExportStudentProgressForBtcv2Args = {
   exportRequest: StudentPersonalProgressExportBtcInput;
+};
+
+
+export type TeacherQueriesExportStudentProgressForBtcv3Args = {
+  exportRequest: StudentProgressFilterBtcInputModelV2;
 };
 
 
@@ -47838,6 +48056,16 @@ export type TeacherQueriesGetStudentPlanGoalsWithTaskSetsForClassSubjectArgs = {
 
 export type TeacherQueriesGetStudentProfileArgs = {
   studentId: Scalars['ID']['input'];
+};
+
+
+export type TeacherQueriesGetStudentProgressForBmArgs = {
+  filter: StudentProgressFilterBtcInputModelV2;
+};
+
+
+export type TeacherQueriesGetStudentProgressForBmCountArgs = {
+  filter: StudentProgressFilterBtcInputModelV2;
 };
 
 
@@ -49728,8 +49956,9 @@ export type TrajectoryQueries = {
   getAssignedTrajectories: Array<Maybe<StudentTrajectorySlug>>;
   /** Получить максимальную плановую дату окончания траектории студента */
   getMaxPlanEndDateByStudentIdAndTrajectory?: Maybe<Scalars['Date']['output']>;
-  /** Получение рекомендованого шаблона траектории на основании данных из АС Пульс */
   getRecommendedTrajectoryTemplate?: Maybe<TrajectoryTemplate>;
+  /** Получение рекомендованого шаблона траектории на основании данных из АС Пульс */
+  getRecommendedTrajectoryTemplateV2?: Maybe<TrajectoryTemplate>;
   /** Получить данные для фильтров для страницы списка задач по назначению шаблонов траектории на студентов */
   getTemplateAssignmentTaskFilterData?: Maybe<TemplateAssignmentTaskFilterData>;
   getTrajectoriesByIds: Array<Trajectory>;
@@ -49738,7 +49967,10 @@ export type TrajectoryQueries = {
   getTrajectoryTemplateById: TrajectoryTemplate;
   /** Получение статусов шаблонов траекторий Bootcamp */
   getTrajectoryTemplateStatuses: Array<Maybe<TrajectoryTemplateStatus>>;
-  /** Получение типов шаблонов траекторий Bootcamp */
+  /**
+   * Получение типов шаблонов траекторий Bootcamp
+   * @deprecated Использовать getRecommendedTrajectoryTemplateV2
+   */
   getTrajectoryTemplateTypes: Array<Maybe<TrajectoryTemplateType>>;
 };
 
@@ -49796,6 +50028,12 @@ export type TrajectoryQueriesGetMaxPlanEndDateByStudentIdAndTrajectoryArgs = {
 export type TrajectoryQueriesGetRecommendedTrajectoryTemplateArgs = {
   studentId: Scalars['ID']['input'];
   trajectoryTemplateType: TrajectoryTemplateType;
+  userId: Scalars['ID']['input'];
+};
+
+
+export type TrajectoryQueriesGetRecommendedTrajectoryTemplateV2Args = {
+  studentId: Scalars['ID']['input'];
   userId: Scalars['ID']['input'];
 };
 
@@ -50013,6 +50251,26 @@ export type UniversityActiveStudentsCount = {
   __typename?: 'UniversityActiveStudentsCount';
   activeStudentsCount: Scalars['Int']['output'];
   registeredStudentsCount: Scalars['Int']['output'];
+};
+
+/** Домен университет, к которому относится пользователь Bootcamp */
+export type UniversityDomainModel = {
+  __typename?: 'UniversityDomainModel';
+  /** Имя домена университета */
+  domain: Scalars['String']['output'];
+  /** Идентификатор домена университета */
+  universityDomainId: Scalars['ID']['output'];
+  /** Идентификатор университета, к которому относится домен */
+  universityId: Scalars['ID']['output'];
+};
+
+/** Университет, к которому относится пользователь Bootcamp */
+export type UniversityModel = {
+  __typename?: 'UniversityModel';
+  /** Идентификатор университета */
+  universityId: Scalars['ID']['output'];
+  /** Название университета */
+  universityName: Scalars['String']['output'];
 };
 
 export type UniversityModulesReportFilter = {
@@ -50891,6 +51149,8 @@ export type UserMutations = {
   createSystemError: Scalars['Boolean']['output'];
   /** Удалить отзыв о задании (Лайк/Дизлайк) */
   deleteFeedback: Scalars['Boolean']['output'];
+  /** Удалить отзыв на задании (Лайк/Дизлайк) используется командой Bootcamp */
+  deleteFeedbackBTC: Scalars['Boolean']['output'];
   /** Делает запрос на редактирование телефона, возвращает сколько времени будет действовать код */
   editMobile: Scalars['Int']['output'];
   /** установка признака прохождения онбординга определенного типа */
@@ -50899,6 +51159,8 @@ export type UserMutations = {
   resetOnboarding?: Maybe<Scalars['Boolean']['output']>;
   /** Оставить отзыв задании (Лайк/Дизлайк) */
   saveFeedback: Scalars['Boolean']['output'];
+  /** Оставить отзыв на задании (Лайк/Дизлайк) используется командой Bootcamp */
+  saveFeedbackBTC: Scalars['Boolean']['output'];
   /** простановка идентификатора текущего шага онбординга и окончен ли он. Вернет ид онбординга */
   setCurrentOnboardingStep: Scalars['ID']['output'];
   /** устанавливает текущему пользователю переданный пароль. Так же передается старый пароль для верификации */
@@ -50975,6 +51237,11 @@ export type UserMutationsDeleteFeedbackArgs = {
 };
 
 
+export type UserMutationsDeleteFeedbackBtcArgs = {
+  taskId: Scalars['ID']['input'];
+};
+
+
 export type UserMutationsEditMobileArgs = {
   newMobileNumber: Scalars['String']['input'];
 };
@@ -50991,6 +51258,11 @@ export type UserMutationsResetOnboardingArgs = {
 
 
 export type UserMutationsSaveFeedbackArgs = {
+  feedback: FeedbackInput;
+};
+
+
+export type UserMutationsSaveFeedbackBtcArgs = {
   feedback: FeedbackInput;
 };
 
@@ -51387,12 +51659,15 @@ export type UserQueries = {
   countComplaintsBTC: Scalars['Int']['output'];
   /** Запрос количества рейтингов */
   countFeedbacks: Scalars['Int']['output'];
+  /** Подсчет результатов удовлетворяющих фильтру */
+  countFeedbacksBTC: Scalars['Int']['output'];
   /** Запрос количества рейтингов текущего пользователя */
   countMyFeedbacks: Scalars['Int']['output'];
   /** Запрос количества системных ошибок */
   countSystemError: Scalars['Int']['output'];
   /** Отчет по жалобам пользователей в Bootcamp */
   exportComplaintsBTC: ReportExcelFile;
+  exportFeedbackReport: ReportExcelFile;
   /** Отчет по опечаткам в Bootcamp */
   exportMisprintReportsBTC: ReportExcelFile;
   /**
@@ -51496,6 +51771,14 @@ export type UserQueries = {
   getCurrentUserSchoolRoles: Array<UserSchoolRole>;
   /** Просмотр отзыва о задании */
   getFeedback?: Maybe<Feedback>;
+  /** Получение отзыва для ученика БМ/Дашбоды/Рейтинги */
+  getFeedbackBTC?: Maybe<Feedback>;
+  /** Просмотр рейтингов БМ/Дашбоды/Рейтинги */
+  getFeedbackReport: Array<FeedbackReportBtc>;
+  /** Просмотр конкретного рейтинга БМ/Дашбоды/Рейтинги */
+  getFeedbackReportById: FeedbackReportBtc;
+  /** Получение фильтра для построения дашборда */
+  getFeedbackReportFilter: Array<Task>;
   /** Запрос статистики по фидбэкам задания */
   getFeedbackStatistics: FeedbackStatistics;
   /** Запрос списка видов оценки (что понравилось больше всего) */
@@ -51590,6 +51873,11 @@ export type UserQueriesCountFeedbacksArgs = {
 };
 
 
+export type UserQueriesCountFeedbacksBtcArgs = {
+  filter?: InputMaybe<FeedbackFilterInputModel>;
+};
+
+
 export type UserQueriesCountMyFeedbacksArgs = {
   taskId?: InputMaybe<Scalars['ID']['input']>;
   textSearch?: InputMaybe<Scalars['String']['input']>;
@@ -51606,6 +51894,11 @@ export type UserQueriesCountSystemErrorArgs = {
 
 export type UserQueriesExportComplaintsBtcArgs = {
   complaintFilter: ComplaintExportFilterInput;
+};
+
+
+export type UserQueriesExportFeedbackReportArgs = {
+  filter?: InputMaybe<FeedbackFilterInputModel>;
 };
 
 
@@ -51731,6 +52024,21 @@ export type UserQueriesGetConfigurationsV2Args = {
 
 export type UserQueriesGetFeedbackArgs = {
   taskId: Scalars['ID']['input'];
+};
+
+
+export type UserQueriesGetFeedbackBtcArgs = {
+  taskId: Scalars['ID']['input'];
+};
+
+
+export type UserQueriesGetFeedbackReportArgs = {
+  filter?: InputMaybe<FeedbackFilterInputModel>;
+};
+
+
+export type UserQueriesGetFeedbackReportByIdArgs = {
+  feedbackId: Scalars['ID']['input'];
 };
 
 
