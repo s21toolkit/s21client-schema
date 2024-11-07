@@ -19216,6 +19216,8 @@ export type HolyGraphItemCourseInfo = {
   courseType?: Maybe<CourseType>;
   /** Продолжительность проекта в часах */
   duration?: Maybe<Scalars['Int']['output']>;
+  /** Обязателен ли проект(высчитывается по зависимостям в конструкторах) */
+  isMandatory?: Maybe<Scalars['Boolean']['output']>;
   /** ИД локального курса ассоциированного с данным глобальным курсом. */
   localCourseId?: Maybe<Scalars['Int']['output']>;
   /** Дата проекта */
@@ -19349,6 +19351,8 @@ export type HolyGraphNode = {
 /** Элементы групп графа */
 export type HolyGraphNodeItem = {
   __typename?: 'HolyGraphNodeItem';
+  /** Элементы, которые зависят от текущего */
+  childrenNodeCodes: Array<Scalars['String']['output']>;
   /** Код элемента */
   code: Scalars['String']['output'];
   /** Детальная информация о курсе */
@@ -19363,7 +19367,7 @@ export type HolyGraphNodeItem = {
   handles: Array<Scalars['String']['output']>;
   /** Ид элемента */
   id: Scalars['String']['output'];
-  /** Элементы от которых зависит текущий */
+  /** Элементы, от которых зависит текущий */
   parentNodeCodes: Array<Scalars['String']['output']>;
   /** Направления обучения (навыки) */
   skills: Array<HolyGraphItemSkill>;
@@ -19392,8 +19396,12 @@ export type HolyGraphQueries = {
   getPublishedGraph?: Maybe<HolyGraphJson>;
   /** Получить список параллелей, имеющих опубликованный граф */
   getPublishedGraphStages: Array<HolyGraphStage>;
+  /** Получить опубликованный шаблон графа прогресса студента */
+  getStudentGraphTemplate?: Maybe<HolyGraphJson>;
   /** Получить граф прогресса студента */
   getStudentStateGraph?: Maybe<HolyGraphJson>;
+  /** Обогатить узел графа информацией о статусе прохождения проектов студентом */
+  getStudentStateGraphNode?: Maybe<HolyGraphNode>;
   /** Проверить наличие у пользователя черновика графа для параллели */
   isDraftGraphExists?: Maybe<Scalars['Boolean']['output']>;
 };
@@ -19431,7 +19439,20 @@ export type HolyGraphQueriesGetPublishedGraphArgs = {
 };
 
 
+export type HolyGraphQueriesGetStudentGraphTemplateArgs = {
+  stageGroupId?: InputMaybe<Scalars['Int']['input']>;
+  studentId?: InputMaybe<Scalars['UUID']['input']>;
+};
+
+
 export type HolyGraphQueriesGetStudentStateGraphArgs = {
+  stageGroupId?: InputMaybe<Scalars['Int']['input']>;
+  studentId?: InputMaybe<Scalars['UUID']['input']>;
+};
+
+
+export type HolyGraphQueriesGetStudentStateGraphNodeArgs = {
+  graphNode: Scalars['JsonNode']['input'];
   stageGroupId?: InputMaybe<Scalars['Int']['input']>;
   studentId?: InputMaybe<Scalars['UUID']['input']>;
 };
@@ -55465,65 +55486,6 @@ export const StudentsCodeReviewByStudentFragmentDoc = gql`
   }
 }
     `;
-export const GraphJsonFragmentDoc = gql`
-    fragment GraphJson on HolyGraphJSON {
-  nodes {
-    id
-    label
-    items {
-      id
-      code
-      handles
-      entityType
-      entityId
-      parentNodeCodes
-      skills {
-        id
-        name
-        color
-        textColor
-      }
-      goal {
-        projectId
-        projectName
-        projectDescription
-        projectPoints
-        goalExecutionType
-        duration
-        projectDate
-        projectState
-        isMandatory
-        projectDate
-      }
-      course {
-        projectId
-        projectName
-        projectDescription
-        projectPoints
-        projectPoints
-        courseType
-        duration
-        projectDate
-        projectState
-        projectDate
-        localCourseId
-      }
-      parentNodeCodes
-    }
-    position {
-      x
-      y
-    }
-  }
-  edges {
-    id
-    source
-    target
-    sourceHandle
-    targetHandle
-  }
-}
-    `;
 export const UpcomingEventFragmentDoc = gql`
     fragment UpcomingEvent on CalendarEvent {
   id
@@ -58013,15 +57975,60 @@ export const RemoveCodeReviewBookingDocument = gql`
   }
 }
     `;
-export const ProjectMapGetStudentGraphStateDocument = gql`
-    query ProjectMapGetStudentGraphState($studentId: UUID, $stageGroupId: Int) {
+export const ProjectMapGetStudentGraphTemplateDocument = gql`
+    query ProjectMapGetStudentGraphTemplate($studentId: UUID, $stageGroupId: Int) {
   holyGraph {
-    getStudentStateGraph(studentId: $studentId, stageGroupId: $stageGroupId) {
-      ...GraphJson
+    getStudentGraphTemplate(studentId: $studentId, stageGroupId: $stageGroupId) {
+      edges {
+        id
+        source
+        target
+        sourceHandle
+        targetHandle
+      }
+      nodes {
+        id
+        label
+        position {
+          x
+          y
+        }
+        items {
+          id
+          code
+          handles
+          entityType
+          entityId
+          parentNodeCodes
+          childrenNodeCodes
+          skills {
+            id
+            name
+            color
+            textColor
+          }
+          goal {
+            projectId
+            projectName
+            projectDescription
+            projectPoints
+            goalExecutionType
+            isMandatory
+          }
+          course {
+            projectId
+            projectName
+            projectDescription
+            projectPoints
+            courseType
+            isMandatory
+          }
+        }
+      }
     }
   }
 }
-    ${GraphJsonFragmentDoc}`;
+    `;
 export const ProjectMapGetStudentStageGroupsDocument = gql`
     query ProjectMapGetStudentStageGroups($studentId: UUID!) {
   school21 {
@@ -58031,6 +58038,33 @@ export const ProjectMapGetStudentStageGroupsDocument = gql`
         waveName
         eduForm
         active
+      }
+    }
+  }
+}
+    `;
+export const ProjectMapGetStudentStateGraphNodeDocument = gql`
+    query ProjectMapGetStudentStateGraphNode($graphNode: JsonNode!, $studentId: UUID, $stageGroupId: Int) {
+  holyGraph {
+    getStudentStateGraphNode(
+      graphNode: $graphNode
+      studentId: $studentId
+      stageGroupId: $stageGroupId
+    ) {
+      id
+      items {
+        id
+        goal {
+          projectState
+          duration
+          projectDate
+        }
+        course {
+          projectState
+          localCourseId
+          duration
+          projectDate
+        }
       }
     }
   }
@@ -59249,11 +59283,14 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     removeCodeReviewBooking(variables: RemoveCodeReviewBookingMutationVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<RemoveCodeReviewBookingMutation> {
       return withWrapper((wrappedRequestHeaders) => client.request<RemoveCodeReviewBookingMutation>(RemoveCodeReviewBookingDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'removeCodeReviewBooking', 'mutation', variables);
     },
-    ProjectMapGetStudentGraphState(variables?: ProjectMapGetStudentGraphStateQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<ProjectMapGetStudentGraphStateQuery> {
-      return withWrapper((wrappedRequestHeaders) => client.request<ProjectMapGetStudentGraphStateQuery>(ProjectMapGetStudentGraphStateDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'ProjectMapGetStudentGraphState', 'query', variables);
+    ProjectMapGetStudentGraphTemplate(variables?: ProjectMapGetStudentGraphTemplateQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<ProjectMapGetStudentGraphTemplateQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<ProjectMapGetStudentGraphTemplateQuery>(ProjectMapGetStudentGraphTemplateDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'ProjectMapGetStudentGraphTemplate', 'query', variables);
     },
     ProjectMapGetStudentStageGroups(variables: ProjectMapGetStudentStageGroupsQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<ProjectMapGetStudentStageGroupsQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<ProjectMapGetStudentStageGroupsQuery>(ProjectMapGetStudentStageGroupsDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'ProjectMapGetStudentStageGroups', 'query', variables);
+    },
+    ProjectMapGetStudentStateGraphNode(variables: ProjectMapGetStudentStateGraphNodeQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<ProjectMapGetStudentStateGraphNodeQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<ProjectMapGetStudentStateGraphNodeQuery>(ProjectMapGetStudentStateGraphNodeDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'ProjectMapGetStudentStateGraphNode', 'query', variables);
     },
     getGraphGetCurrentUser(variables?: GetGraphGetCurrentUserQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<GetGraphGetCurrentUserQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<GetGraphGetCurrentUserQuery>(GetGraphGetCurrentUserDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'getGraphGetCurrentUser', 'query', variables);
@@ -60593,15 +60630,13 @@ export type RemoveCodeReviewBookingMutationVariables = Exact<{
 
 export type RemoveCodeReviewBookingMutation = { __typename?: 'Mutation', student?: { __typename?: 'StudentMutations', removeBookingToCodeReview?: { __typename?: 'CalendarEvent', id: string } | null } | null };
 
-export type GraphJsonFragment = { __typename?: 'HolyGraphJSON', nodes: Array<{ __typename?: 'HolyGraphNode', id: string, label: string, items: Array<{ __typename?: 'HolyGraphNodeItem', id: string, code: string, handles: Array<string>, entityType: HolyGraphItemEntityType, entityId: number, parentNodeCodes: Array<string>, skills: Array<{ __typename?: 'HolyGraphItemSkill', id: string, name: string, color: string, textColor?: string | null }>, goal?: { __typename?: 'HolyGraphItemGoalInfo', projectId: number, projectName: string, projectDescription?: string | null, projectPoints?: number | null, goalExecutionType?: ModuleExecutionType | null, duration?: number | null, projectDate?: Date | null, projectState?: GraphNodeProgressStateEnum | null, isMandatory?: boolean | null } | null, course?: { __typename?: 'HolyGraphItemCourseInfo', projectId: number, projectName: string, projectDescription?: string | null, projectPoints?: number | null, courseType?: CourseType | null, duration?: number | null, projectDate?: Date | null, projectState?: GraphNodeProgressStateEnum | null, localCourseId?: number | null } | null }>, position: { __typename?: 'HolyGraphNodePosition', x: number, y: number } }>, edges: Array<{ __typename?: 'HolyGraphEdge', id: string, source: string, target: string, sourceHandle: string, targetHandle: string }> };
-
-export type ProjectMapGetStudentGraphStateQueryVariables = Exact<{
+export type ProjectMapGetStudentGraphTemplateQueryVariables = Exact<{
   studentId?: InputMaybe<Scalars['UUID']['input']>;
   stageGroupId?: InputMaybe<Scalars['Int']['input']>;
 }>;
 
 
-export type ProjectMapGetStudentGraphStateQuery = { __typename?: 'Query', holyGraph?: { __typename?: 'HolyGraphQueries', getStudentStateGraph?: { __typename?: 'HolyGraphJSON', nodes: Array<{ __typename?: 'HolyGraphNode', id: string, label: string, items: Array<{ __typename?: 'HolyGraphNodeItem', id: string, code: string, handles: Array<string>, entityType: HolyGraphItemEntityType, entityId: number, parentNodeCodes: Array<string>, skills: Array<{ __typename?: 'HolyGraphItemSkill', id: string, name: string, color: string, textColor?: string | null }>, goal?: { __typename?: 'HolyGraphItemGoalInfo', projectId: number, projectName: string, projectDescription?: string | null, projectPoints?: number | null, goalExecutionType?: ModuleExecutionType | null, duration?: number | null, projectDate?: Date | null, projectState?: GraphNodeProgressStateEnum | null, isMandatory?: boolean | null } | null, course?: { __typename?: 'HolyGraphItemCourseInfo', projectId: number, projectName: string, projectDescription?: string | null, projectPoints?: number | null, courseType?: CourseType | null, duration?: number | null, projectDate?: Date | null, projectState?: GraphNodeProgressStateEnum | null, localCourseId?: number | null } | null }>, position: { __typename?: 'HolyGraphNodePosition', x: number, y: number } }>, edges: Array<{ __typename?: 'HolyGraphEdge', id: string, source: string, target: string, sourceHandle: string, targetHandle: string }> } | null } | null };
+export type ProjectMapGetStudentGraphTemplateQuery = { __typename?: 'Query', holyGraph?: { __typename?: 'HolyGraphQueries', getStudentGraphTemplate?: { __typename?: 'HolyGraphJSON', edges: Array<{ __typename?: 'HolyGraphEdge', id: string, source: string, target: string, sourceHandle: string, targetHandle: string }>, nodes: Array<{ __typename?: 'HolyGraphNode', id: string, label: string, position: { __typename?: 'HolyGraphNodePosition', x: number, y: number }, items: Array<{ __typename?: 'HolyGraphNodeItem', id: string, code: string, handles: Array<string>, entityType: HolyGraphItemEntityType, entityId: number, parentNodeCodes: Array<string>, childrenNodeCodes: Array<string>, skills: Array<{ __typename?: 'HolyGraphItemSkill', id: string, name: string, color: string, textColor?: string | null }>, goal?: { __typename?: 'HolyGraphItemGoalInfo', projectId: number, projectName: string, projectDescription?: string | null, projectPoints?: number | null, goalExecutionType?: ModuleExecutionType | null, isMandatory?: boolean | null } | null, course?: { __typename?: 'HolyGraphItemCourseInfo', projectId: number, projectName: string, projectDescription?: string | null, projectPoints?: number | null, courseType?: CourseType | null, isMandatory?: boolean | null } | null }> }> } | null } | null };
 
 export type ProjectMapGetStudentStageGroupsQueryVariables = Exact<{
   studentId: Scalars['UUID']['input'];
@@ -60609,6 +60644,15 @@ export type ProjectMapGetStudentStageGroupsQueryVariables = Exact<{
 
 
 export type ProjectMapGetStudentStageGroupsQuery = { __typename?: 'Query', school21?: { __typename?: 'School21Queries', loadStudentStageGroups?: Array<{ __typename?: 'StageGroupS21Student', stageGroupS21: { __typename?: 'StageGroupS21', waveId: number, waveName: string, eduForm: string, active?: boolean | null } } | null> | null } | null };
+
+export type ProjectMapGetStudentStateGraphNodeQueryVariables = Exact<{
+  graphNode: Scalars['JsonNode']['input'];
+  studentId?: InputMaybe<Scalars['UUID']['input']>;
+  stageGroupId?: InputMaybe<Scalars['Int']['input']>;
+}>;
+
+
+export type ProjectMapGetStudentStateGraphNodeQuery = { __typename?: 'Query', holyGraph?: { __typename?: 'HolyGraphQueries', getStudentStateGraphNode?: { __typename?: 'HolyGraphNode', id: string, items: Array<{ __typename?: 'HolyGraphNodeItem', id: string, goal?: { __typename?: 'HolyGraphItemGoalInfo', projectState?: GraphNodeProgressStateEnum | null, duration?: number | null, projectDate?: Date | null } | null, course?: { __typename?: 'HolyGraphItemCourseInfo', projectState?: GraphNodeProgressStateEnum | null, localCourseId?: number | null, duration?: number | null, projectDate?: Date | null } | null }> } | null } | null };
 
 export type GetGraphGetCurrentUserQueryVariables = Exact<{ [key: string]: never; }>;
 
