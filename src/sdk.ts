@@ -271,6 +271,7 @@ export type AcademicYearSubjects = {
 export type AccGigaChatMessageInput = {
   /** текст сообщения */
   content: Scalars['String']['input'];
+  role?: InputMaybe<GigaChatRoleEnum>;
 };
 
 /** Ответ GigaChat */
@@ -1323,6 +1324,7 @@ export type AcceleratorQueriesFindCalendarEventsByFilterArgs = {
 
 
 export type AcceleratorQueriesGetAccGigaChatResponseArgs = {
+  conversationId?: InputMaybe<Scalars['UUID']['input']>;
   messages: Array<AccGigaChatMessageInput>;
 };
 
@@ -5229,6 +5231,7 @@ export type BusinessAdminMutations = {
    * @deprecated use sc21BaTaskCheck#savePrivateFeedback
    */
   changeStagePlan: StagePlan;
+  checkAutoAwards: Scalars['Boolean']['output'];
   /** Завершаем турнир по ID */
   closeTournament: GameTournament;
   /** Создание персональных планов на основе существующих */
@@ -5372,6 +5375,8 @@ export type BusinessAdminMutations = {
   handleAllProjectDeadlines?: Maybe<Scalars['Boolean']['output']>;
   /** Создание новой записи в student_whiteList */
   insertNewStudent?: Maybe<Scalars['Boolean']['output']>;
+  /** Запись факта выдачи Welcome Pack */
+  issuedWelcomePack: WelcomePackModel;
   /** Ручное завершение экзамена для всех студентов подписанных на экзамен */
   manualExamFinish: Scalars['Boolean']['output'];
   /** Отметить версию черновика расписания как просмотренную */
@@ -5408,6 +5413,8 @@ export type BusinessAdminMutations = {
   removeUsersFromUserGroups: Array<UserGroup>;
   /** Переименование кластера в Ш21 */
   renameS21Cluster: Scalars['Int']['output'];
+  /** Сброс факта выдачи Welcome Pack */
+  resetIssuedStatusForWelcomePack: WelcomePackModel;
   /**
    * Перезапуск сохранения текущей версии плана для студентов с ошибкой
    * @deprecated Функция работает не стабильно и временно отключена. Доработки будут реализованы в рамках S21-19562
@@ -5739,6 +5746,11 @@ export type BusinessAdminMutationsChangeStagePlanArgs = {
   frames: Array<StagePlanFrameInput>;
   stagePlanId: Scalars['ID']['input'];
   status: PlanStatusEnum;
+};
+
+
+export type BusinessAdminMutationsCheckAutoAwardsArgs = {
+  inputs: Array<CheckAutoAwardsEventInput>;
 };
 
 
@@ -6151,6 +6163,13 @@ export type BusinessAdminMutationsInsertNewStudentArgs = {
 };
 
 
+export type BusinessAdminMutationsIssuedWelcomePackArgs = {
+  organisationName: Scalars['String']['input'];
+  personnelNumber: Scalars['ID']['input'];
+  studentId: Scalars['UUID']['input'];
+};
+
+
 export type BusinessAdminMutationsManualExamFinishArgs = {
   examEventId: Scalars['ID']['input'];
   goalId: Scalars['ID']['input'];
@@ -6231,6 +6250,12 @@ export type BusinessAdminMutationsRenameS21ClusterArgs = {
   clusterId: Scalars['Int']['input'];
   name: Scalars['String']['input'];
   shortName: Scalars['String']['input'];
+};
+
+
+export type BusinessAdminMutationsResetIssuedStatusForWelcomePackArgs = {
+  comment: Scalars['String']['input'];
+  welcomePackId: Scalars['ID']['input'];
 };
 
 
@@ -6621,6 +6646,8 @@ export type BusinessAdminQueries = {
   checkS21ClassPlanPeriodsRelocatedToPast: Array<Scalars['String']['output']>;
   /** Получение количества университетов */
   countAllUniversities: Scalars['ID']['output'];
+  /** Получение количества записей в отчете welcome pack */
+  countWelcomePackReports: Scalars['ID']['output'];
   /** Предметы. Выгрузка в Excel. */
   downloadModulesProgressBySubjectAndStageExcel: ReportExcelFile;
   /** Отчет "Успеваемость по эл.журналу" выгрузка в Excel */
@@ -6646,6 +6673,8 @@ export type BusinessAdminQueries = {
   exportCertificateForStudent: IssuedCertificatePdf;
   /** Отчет по выгрузке вузовской почты учеников в Bootcamp */
   exportStudentUniversityEmails: ReportExcelFile;
+  /** Отчет по Welcome Pack'ах в Bootcamp */
+  exportWelcomePackReports: ReportExcelFile;
   /** Запрос всех групп класса по предмету для школы */
   findAllStageSubjectGroupsOfSchool: Array<StageSubjectGroup>;
   /** @deprecated Не поддерживается. Используйте findGitlabProjectsV3 */
@@ -6961,8 +6990,10 @@ export type BusinessAdminQueries = {
   getSchoolGameTournaments: Array<GameTournament>;
   /** Общее кол-во турниров в школе */
   getSchoolGameTournamentsCount: Scalars['Int']['output'];
+  getSchoolGameTournamentsCountV2: Scalars['Int']['output'];
   /** Турниры за период */
   getSchoolGameTournamentsForTimes: Array<GameTournament>;
+  getSchoolGameTournamentsV2: Array<GameTournament>;
   /**
    * S21. Публичный профиль студента. Получение SchoolId по Login пользователя, если нет schoolId - EMPTY_UUID
    * @deprecated использовать getStudentByLogin
@@ -7144,6 +7175,7 @@ export type BusinessAdminQueries = {
   getTimetableDraftSummariesPerSchool: Array<TimetableDraftSummary>;
   /** Получить драфт расписания на неделю */
   getTimetableDraftV2: TimetableDraftV2;
+  getTournamentResultReport: ReportExcelFile;
   /** Метод возвращает траектории учеников */
   getTrajectories?: Maybe<Array<Scalars['String']['output']>>;
   /** Незавершенные турниры */
@@ -7238,6 +7270,10 @@ export type BusinessAdminQueries = {
    * @deprecated Использовать запрос checkHowToDeleteClassroom
    */
   loadTenantsWithWriteAccess: Array<School>;
+  /** Получение фильтра для отчета о welcome pack */
+  loadWelcomePackReportFilterParams: WelcomePackFilterParamsModel;
+  /** Получение отчета о welcome pack */
+  loadWelcomePackReports: Array<WelcomePackReportModel>;
   /** проверка при переводе учеников между группами по предметам */
   preventSaveClassSubjectGroupStudents: Array<SaveSubjectGroupStudentsMessage>;
   validateLoginsForAwards: LoginValidationResponse;
@@ -7303,6 +7339,11 @@ export type BusinessAdminQueriesCheckS21ClassPlanPeriodsRelocatedToPastArgs = {
 
 export type BusinessAdminQueriesCountAllUniversitiesArgs = {
   universityInfoFilter: UniversityInfoFilterModel;
+};
+
+
+export type BusinessAdminQueriesCountWelcomePackReportsArgs = {
+  welcomePackFilter: WelcomePackFilterInputModel;
 };
 
 
@@ -7398,6 +7439,11 @@ export type BusinessAdminQueriesExportCertificateForStudentArgs = {
 
 export type BusinessAdminQueriesExportStudentUniversityEmailsArgs = {
   universityEmailFilter: UniversityEmailFilterInputModel;
+};
+
+
+export type BusinessAdminQueriesExportWelcomePackReportsArgs = {
+  welcomePackFilter: WelcomePackFilterInputModel;
 };
 
 
@@ -8026,10 +8072,27 @@ export type BusinessAdminQueriesGetSchoolGameTournamentsArgs = {
 };
 
 
+export type BusinessAdminQueriesGetSchoolGameTournamentsCountV2Args = {
+  search?: InputMaybe<Scalars['String']['input']>;
+  stageId?: InputMaybe<Scalars['ID']['input']>;
+  timeStatus: TimeStatus;
+};
+
+
 export type BusinessAdminQueriesGetSchoolGameTournamentsForTimesArgs = {
   sortingFields?: InputMaybe<Array<SortingField>>;
   timeEnd: Scalars['DateTime']['input'];
   timeStart: Scalars['DateTime']['input'];
+};
+
+
+export type BusinessAdminQueriesGetSchoolGameTournamentsV2Args = {
+  limit: Scalars['Int']['input'];
+  offset: Scalars['Int']['input'];
+  search?: InputMaybe<Scalars['String']['input']>;
+  sortingFields?: InputMaybe<Array<SortingField>>;
+  stageId?: InputMaybe<Scalars['ID']['input']>;
+  timeStatus: TimeStatus;
 };
 
 
@@ -8529,6 +8592,11 @@ export type BusinessAdminQueriesGetTimetableDraftV2Args = {
 };
 
 
+export type BusinessAdminQueriesGetTournamentResultReportArgs = {
+  tournamentId: Scalars['ID']['input'];
+};
+
+
 export type BusinessAdminQueriesGetUnfinishedTournamentsArgs = {
   stageGroupId: Scalars['Int']['input'];
 };
@@ -8826,6 +8894,11 @@ export type BusinessAdminQueriesLoadStudentsTeamS21ReportArgs = {
 export type BusinessAdminQueriesLoadTaskEvaluationRuleGroupsFromLocalCourseArgs = {
   conditionType: ConditionType;
   localCourseGoalId: Scalars['ID']['input'];
+};
+
+
+export type BusinessAdminQueriesLoadWelcomePackReportsArgs = {
+  welcomePackFilter: WelcomePackFilterInputModel;
 };
 
 
@@ -9666,12 +9739,26 @@ export type CertificateOfParticipation = {
   certificateId: Scalars['ID']['output'];
   /** Титул свидетельства */
   courseTitle: Scalars['String']['output'];
+  /** Плановая трудоемкость в часах */
+  planLaboriousness?: Maybe<Scalars['Int']['output']>;
   /** Шаблон сертификата */
   templateType: Scalars['String']['output'];
   /** ID траектории */
   trajectoryTemplateId: Scalars['ID']['output'];
   /** Название траектории */
   trajectoryTemplateSlug: Scalars['String']['output'];
+  /** Название траектории для выдачи свидетельства (может не совпадать с trajectoryTemplateName) */
+  trajectoryTitle: Scalars['String']['output'];
+};
+
+export type CertificateOfParticipationInfoModel = {
+  __typename?: 'CertificateOfParticipationInfoModel';
+  /** Необходимый уровень прохождения для получения сертификата */
+  achieveLevel: Scalars['Int']['output'];
+  /** Титул свидетельства */
+  courseTitle: Scalars['String']['output'];
+  /** Текущий уровень прохождения траектории учеником */
+  trajectoryProgress: Scalars['Int']['output'];
   /** Название траектории для выдачи свидетельства (может не совпадать с trajectoryTemplateName) */
   trajectoryTitle: Scalars['String']['output'];
 };
@@ -9890,6 +9977,13 @@ export type ChannelInput = {
   channelName?: InputMaybe<Scalars['String']['input']>;
 };
 
+export type CheckAutoAwardsEventInput = {
+  schoolId: Scalars['UUID']['input'];
+  studentId: Scalars['UUID']['input'];
+  trigger: Scalars['String']['input'];
+  userId: Scalars['UUID']['input'];
+};
+
 export type CheckSequenceSettings = {
   __typename?: 'CheckSequenceSettings';
   checks: Array<CheckWeight>;
@@ -9982,6 +10076,14 @@ export type ChildUserInfo = {
   lastName: Scalars['String']['output'];
   middleName?: Maybe<Scalars['String']['output']>;
   studentRoles: Array<StudentRole>;
+};
+
+export type CityModel = {
+  __typename?: 'CityModel';
+  /** ID города */
+  cityId: Scalars['ID']['output'];
+  /** Название города */
+  cityName: Scalars['String']['output'];
 };
 
 /** Информация о классе взята из stage_subject_groups */
@@ -14296,6 +14398,8 @@ export type EJournalDeleteOperationResponse = {
 /** Модель ошибки ЭЖ */
 export type EJournalError = {
   __typename?: 'EJournalError';
+  /** Дополнительная информация по ошибке (опционально) */
+  error?: Maybe<Scalars['String']['output']>;
   /** Код ошибки */
   errorCode: EJournalErrorCode;
 };
@@ -17023,6 +17127,7 @@ export enum FileExtensionEnum {
   Ipynb = 'IPYNB',
   Jpeg = 'JPEG',
   Jpg = 'JPG',
+  Json = 'JSON',
   Key = 'KEY',
   M4A = 'M4A',
   Mka = 'MKA',
@@ -17046,7 +17151,10 @@ export enum FileExtensionEnum {
   Txt = 'TXT',
   Wav = 'WAV',
   Xls = 'XLS',
-  Xlsx = 'XLSX'
+  Xlsx = 'XLSX',
+  Xml = 'XML',
+  Yaml = 'YAML',
+  Yml = 'YML'
 }
 
 export type FileInput = {
@@ -17614,9 +17722,11 @@ export type GameTournament = {
   timeEnd: Scalars['DateTime']['output'];
   timeStart: Scalars['DateTime']['output'];
   tournamentAwardDescription?: Maybe<Scalars['String']['output']>;
+  tournamentAwardSettings?: Maybe<Array<TournamentAwardSetting>>;
 };
 
 export type GameTournamentInput = {
+  awardSettings?: InputMaybe<Array<TournamentAwardSettingInput>>;
   gameCoalitionIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   id?: InputMaybe<Scalars['ID']['input']>;
   name: Scalars['String']['input'];
@@ -19980,7 +20090,11 @@ export type IsSelfAssessmentTestComplete = {
 
 export type IssuedCertificateModel = {
   __typename?: 'IssuedCertificateModel';
-  /** ID шаблона сертификата */
+  /**
+   * ID шаблона сертификата
+   * @deprecated Под удаление.
+   */
+  certificateId: Scalars['ID']['output'];
   certificateInfo: CertificateOfParticipation;
   /** Плановая дата начала траектории */
   dateEnd: Scalars['Date']['output'];
@@ -29033,12 +29147,16 @@ export type S21ClassPlan = {
   classPlanId?: Maybe<Scalars['ID']['output']>;
   /** Идентификатор группы по предмету */
   classSubjectId?: Maybe<Scalars['ID']['output']>;
+  /** Произошла ли миграция данного плана на курсы */
+  isMigrated?: Maybe<Scalars['Boolean']['output']>;
   /** Статус плана */
   isPublished: Scalars['Boolean']['output'];
   /** Цели плана */
   planGoals: Array<S21ClassPlanGoal>;
   /** Количество проектов */
   projectCount?: Maybe<Scalars['Int']['output']>;
+  /** Идентификатор паралели */
+  stageId?: Maybe<Scalars['ID']['output']>;
   /** Идентификатор плана на параллель */
   stagePlanId?: Maybe<Scalars['ID']['output']>;
   /** Дата/время начала плана */
@@ -29392,6 +29510,20 @@ export type S21MassAddAwardToUsersResponse = {
   message: Scalars['String']['output'];
 };
 
+/** S21. Тип сущности для миграции с плана на курс */
+export enum S21MigrationFromPlanToCourseEntityType {
+  All = 'ALL',
+  Campus = 'CAMPUS',
+  Class = 'CLASS'
+}
+
+/** Результат миграции с плана в курс */
+export type S21MigrationFromPlanToCourseResult = {
+  __typename?: 'S21MigrationFromPlanToCourseResult';
+  /** Время затраченное на миграцию */
+  timeSpent: Scalars['String']['output'];
+};
+
 export type S21Notification = {
   __typename?: 'S21Notification';
   groupName?: Maybe<Scalars['String']['output']>;
@@ -29484,6 +29616,8 @@ export type S21NotificationReport = {
 
 export type S21PlanMutations = {
   __typename?: 'S21PlanMutations';
+  /** Запуск миграции c плана на класс в курс */
+  migrateFromClassPlanToCourse: S21MigrationFromPlanToCourseResult;
   /** Публикация плана на параллель */
   publishS21StagePlanByGlobalPlanIds: Array<S21StagePlan>;
   /** Сброс плана на параллель до состояния глобального плана */
@@ -29503,6 +29637,13 @@ export type S21PlanMutations = {
   saveTeamSettingsInStageSubjectGroupPlanGoal: Scalars['Boolean']['output'];
   /** Сохранение параметров команды в модуле плана на параллель */
   saveTeamSettingsInStageSubjectPlanGoal: Scalars['Boolean']['output'];
+};
+
+
+export type S21PlanMutationsMigrateFromClassPlanToCourseArgs = {
+  isAsync?: InputMaybe<Scalars['Boolean']['input']>;
+  migrationEntityId?: InputMaybe<Scalars['String']['input']>;
+  migrationEntityType: S21MigrationFromPlanToCourseEntityType;
 };
 
 
@@ -30817,6 +30958,8 @@ export type School21Mutations = {
   reinstateStudents?: Maybe<ExpelResult>;
   /** Модератор отклоняет заявку на расформирование команды */
   rejectTeamDisbandRequest: DisbandRequestStatus;
+  /** S21. Откат попытки выполнения экзамена/теста студентом */
+  rollbackExamAttempt: Scalars['Boolean']['output'];
   /** сохранение связей между кампусами для выбранной параллели */
   saveMulticampusSchoolStageDependencies?: Maybe<Scalars['Boolean']['output']>;
   /** сохранение настроек ультикампусности для школы (вкл/выкл) */
@@ -30959,6 +31102,11 @@ export type School21MutationsReinstateStudentsArgs = {
 
 export type School21MutationsRejectTeamDisbandRequestArgs = {
   teamDisbandRequestId: Scalars['ID']['input'];
+};
+
+
+export type School21MutationsRollbackExamAttemptArgs = {
+  studentGoalId: Scalars['ID']['input'];
 };
 
 
@@ -32847,6 +32995,8 @@ export type ShortStudentProgress = {
   achievedModuleLevelCount: Scalars['Int']['output'];
   /** Окончание прохождения */
   end?: Maybe<Scalars['DateTime']['output']>;
+  /** Возможность получения сертификата по траекториям студента */
+  isHavePossibilityToGetCertificate?: Maybe<Scalars['Boolean']['output']>;
   /** Запланированная трудоемкость в днях */
   planLaboriousnessDays?: Maybe<Scalars['Int']['output']>;
   /** Запланированная трудоемкость в часах */
@@ -32872,6 +33022,15 @@ export type SimpleAnswerBody = {
 export type SimpleAnswerBodyInput = {
   /** Простой ответ */
   answer: Scalars['String']['input'];
+};
+
+/** Упрощенное представление пользователя */
+export type SimpleUserInfoModel = {
+  __typename?: 'SimpleUserInfoModel';
+  /** Полное ФИО пользователя */
+  fullName: Scalars['String']['output'];
+  /** ID пользователя */
+  userId: Scalars['UUID']['output'];
 };
 
 export type SkillDescription = {
@@ -38519,6 +38678,8 @@ export type StudentQueries = {
   getNameLessStudentTimeslotsForReview: CalendarNamelessTimeSlotResponse;
   /** Возвращает информацию о текущих и завершенных Домашних Работах ученика */
   getNonExpiredStudentHomeworks: NonExpiredStudentHomeworksInfo;
+  /** Получение сертификатов не доступных к скачиванию ученику */
+  getNotReceivedCertificatesForStudent?: Maybe<Array<Maybe<CertificateOfParticipationInfoModel>>>;
   getNotifications: Array<Notification>;
   getNotificationsByTypes: Array<Notification>;
   getNotificationsCount: Scalars['Int']['output'];
@@ -40254,6 +40415,59 @@ export type StudentRatingBySubjectModel = {
   finalMarks: Array<Maybe<JournalFinalStudentMark>>;
   stageSubjectGroupId: Scalars['ID']['output'];
   subjectId: Scalars['ID']['output'];
+};
+
+export type StudentReducedProgressFilterBtcInputModel = {
+  /** Идентификаторы модулей */
+  goalIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Пагинация */
+  paging?: InputMaybe<PagingInput>;
+  /** Начало диапазона плановой даты начала обучения */
+  planStartDateFrom?: InputMaybe<Scalars['Date']['input']>;
+  /** Конец диапазона плановой даты начала обучения */
+  planStartDateTo?: InputMaybe<Scalars['Date']['input']>;
+  /** Идентификаторы классов */
+  stageGroupIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Идентификаторы предметов */
+  subjectIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Фильтр по траекториям */
+  trajectories?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Идентификаторы пользоваталей */
+  userIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+};
+
+export type StudentReducedProgressForBtcModel = {
+  __typename?: 'StudentReducedProgressForBtcModel';
+  /** Дата создания УЗ */
+  accountCreationDate: Scalars['DateTime']['output'];
+  /** Email ученика */
+  email?: Maybe<Scalars['String']['output']>;
+  /** Фактическая дата окончания */
+  factEndDate?: Maybe<Scalars['DateTime']['output']>;
+  /** Фактическая дата начала */
+  factStartDate?: Maybe<Scalars['DateTime']['output']>;
+  /** Имя ученика */
+  firstName: Scalars['String']['output'];
+  /** Полное ФИО */
+  fullName: Scalars['String']['output'];
+  /** Дата последнего входа */
+  lastAuthorizationDate?: Maybe<Scalars['DateTime']['output']>;
+  /** Фамилия ученика */
+  lastName: Scalars['String']['output'];
+  /** Логин ученика */
+  login: Scalars['String']['output'];
+  /** Отчество ученика */
+  middleName?: Maybe<Scalars['String']['output']>;
+  /** Прогресс по траектории (в процентах) */
+  progressPercentByTrajectory: Scalars['Int']['output'];
+  /** Идентификатор студента (students.student_id) */
+  studentId: Scalars['ID']['output'];
+  /** Прогресс по модулям */
+  studyModuleProgress?: Maybe<Array<StudentStudyModuleProgress>>;
+  /** Траектория */
+  trajectory?: Maybe<Scalars['String']['output']>;
+  /** Идентификатор пользователя (users.user_id) */
+  userId: Scalars['ID']['output'];
 };
 
 export type StudentRole = {
@@ -50487,6 +50701,13 @@ export enum TimeSlotTypeEnum {
   FreeTime = 'FREE_TIME'
 }
 
+export enum TimeStatus {
+  Any = 'ANY',
+  Completed = 'COMPLETED',
+  Ongoing = 'ONGOING',
+  Upcoming = 'UPCOMING'
+}
+
 /** Тип элемента таймлайна */
 export enum TimelineElementEnum {
   /** авто-проверка */
@@ -50669,6 +50890,26 @@ export type Top5AndMeCoalitionTournamentMembers = {
   top5: Array<CoalitionMemberPowerRank>;
 };
 
+export type TournamentAwardSetting = {
+  __typename?: 'TournamentAwardSetting';
+  award?: Maybe<Award>;
+  awardId?: Maybe<Scalars['ID']['output']>;
+  coalitionPlace: Scalars['Int']['output'];
+  coins?: Maybe<Scalars['Int']['output']>;
+  memberAwards?: Maybe<Array<TournamentAwardSetting>>;
+  memberPlace?: Maybe<Scalars['Int']['output']>;
+  tournamentAwardSettingId: Scalars['ID']['output'];
+  tournamentId: Scalars['ID']['output'];
+};
+
+export type TournamentAwardSettingInput = {
+  awardId?: InputMaybe<Scalars['Int']['input']>;
+  coalitionPlace: Scalars['Int']['input'];
+  coins?: InputMaybe<Scalars['Int']['input']>;
+  memberAwards?: InputMaybe<Array<TournamentAwardSettingInput>>;
+  memberPlace?: InputMaybe<Scalars['Int']['input']>;
+};
+
 export type Trajectory = {
   __typename?: 'Trajectory';
   created?: Maybe<Scalars['DateTime']['output']>;
@@ -50782,6 +51023,8 @@ export type TrajectoryQueries = {
   /** Получить данные для фильтров для страницы списка задач по назначению шаблонов траектории на студентов */
   getTemplateAssignmentTaskFilterData?: Maybe<TemplateAssignmentTaskFilterData>;
   getTrajectoriesByIds: Array<Trajectory>;
+  /** Получение траекторий по идентификаторам классов */
+  getTrajectoriesByStageGroupIds: Array<Trajectory>;
   getTrajectoryById: Trajectory;
   /** Получение шаблона траектории Bootcamp по его идентификатору */
   getTrajectoryTemplateById: TrajectoryTemplate;
@@ -50870,6 +51113,11 @@ export type TrajectoryQueriesGetRecommendedTrajectoryTemplateV2Args = {
 
 export type TrajectoryQueriesGetTrajectoriesByIdsArgs = {
   ids: Array<Scalars['ID']['input']>;
+};
+
+
+export type TrajectoryQueriesGetTrajectoriesByStageGroupIdsArgs = {
+  stageGroupIds: Array<Scalars['ID']['input']>;
 };
 
 
@@ -51605,6 +51853,8 @@ export type UserCoinsHistoryItemModel = {
   id: Scalars['Int']['output'];
   /** Тип записи в истории(ачивка, покупка...) */
   itemType: UserCoinsHistoryItemType;
+  /** Название турнира, если коины получены за турнир, иначе null */
+  tournamentName?: Maybe<Scalars['String']['output']>;
 };
 
 /** Тип операции с монетами */
@@ -51614,7 +51864,9 @@ export enum UserCoinsHistoryItemType {
   /** Монеты выданы админом в ручном режиме */
   HandReward = 'HAND_REWARD',
   /** Монеты потрачены в магазине */
-  ShopInStore = 'SHOP_IN_STORE'
+  ShopInStore = 'SHOP_IN_STORE',
+  /** монеты получены прямым начислением за турнир */
+  TournamentReward = 'TOURNAMENT_REWARD'
 }
 
 /** Инфа по пользователю и история изменения его монет */
@@ -52570,6 +52822,8 @@ export type UserQueries = {
   countFeedbacksBTC: Scalars['Int']['output'];
   /** Запрос количества рейтингов текущего пользователя */
   countMyFeedbacks: Scalars['Int']['output'];
+  /** Получение количества записей по упрощенной версии отчета БМ для Внешнего учителя */
+  countStudentsReducedProgressForBTC: Scalars['Int']['output'];
   /** Запрос количества системных ошибок */
   countSystemError: Scalars['Int']['output'];
   /** Отчет по жалобам пользователей в Bootcamp */
@@ -52577,6 +52831,8 @@ export type UserQueries = {
   exportFeedbackReport: ReportExcelFile;
   /** Отчет по опечаткам в Bootcamp */
   exportMisprintReportsBTC: ReportExcelFile;
+  /** Получение excel-выгрузки упрощенной версии отчета БМ для Внешнего учителя */
+  exportStudentReducedProgressBTC: ReportExcelFile;
   /**
    * Генерация логина пользователя
    * Генерация логина пользователя
@@ -52729,6 +52985,8 @@ export type UserQueries = {
   getOrganizationUnits: Array<OrganizationUnit>;
   /** Просмотр информации о школе */
   getSchool: SafeSchool;
+  /** Получение упрощенной версии отчета БМ для Внешнего учителя */
+  getStudentsReducedProgressForBTC: Array<StudentReducedProgressForBtcModel>;
   /** просмотр системных ошибок */
   getSystemError: Array<SystemError>;
   /** Получить базовую минимальную информацию по заданию */
@@ -52795,6 +53053,11 @@ export type UserQueriesCountMyFeedbacksArgs = {
 };
 
 
+export type UserQueriesCountStudentsReducedProgressForBtcArgs = {
+  filter: StudentReducedProgressFilterBtcInputModel;
+};
+
+
 export type UserQueriesCountSystemErrorArgs = {
   dateFrom?: InputMaybe<Scalars['DateTime']['input']>;
   dateTo?: InputMaybe<Scalars['DateTime']['input']>;
@@ -52815,6 +53078,11 @@ export type UserQueriesExportFeedbackReportArgs = {
 
 export type UserQueriesExportMisprintReportsBtcArgs = {
   misprintFilter: MisprintExportFilterInput;
+};
+
+
+export type UserQueriesExportStudentReducedProgressBtcArgs = {
+  filter: StudentReducedProgressFilterBtcInputModel;
 };
 
 
@@ -53059,6 +53327,11 @@ export type UserQueriesGetOrganizationUnitsArgs = {
 
 export type UserQueriesGetSchoolArgs = {
   schoolId: Scalars['UUID']['input'];
+};
+
+
+export type UserQueriesGetStudentsReducedProgressForBtcArgs = {
+  filter: StudentReducedProgressFilterBtcInputModel;
 };
 
 
@@ -53859,6 +54132,97 @@ export type WeekSubjectPlan = {
    * null - если на данную неделю не запланирован никакой модуль
    */
   tasks?: Maybe<Array<SubjectTask>>;
+};
+
+export type WelcomePackFilterInputModel = {
+  /** Поиск по городам */
+  cities?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Филь по дате начало */
+  dateFrom?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Филь по дате конец */
+  dateTo?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Фильтр по факту окончания Bootcamp */
+  isCompleteTrajectory?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Поиск среди всех учеников */
+  isFullSearch?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Фильтр по факту выдачи */
+  isIssued?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Сортирорвка по дате */
+  isSortByDate?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Сортировка по ФИО */
+  isSortByName?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Поиск по Botcamp мастерам */
+  masters?: InputMaybe<Array<Scalars['UUID']['input']>>;
+  /** Поиск по организациям */
+  organisationsNames?: InputMaybe<Array<Scalars['String']['input']>>;
+  /** Пагинация */
+  paging?: InputMaybe<PagingInput>;
+  /** Поиск по вхождению */
+  textSearch?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type WelcomePackFilterParamsModel = {
+  __typename?: 'WelcomePackFilterParamsModel';
+  /** Города учеников из отчета о welcome pack */
+  allCities: Array<Maybe<CityModel>>;
+  /** БМ мастера из отчета о welcome pack */
+  masters: Array<Maybe<SimpleUserInfoModel>>;
+};
+
+export type WelcomePackModel = {
+  __typename?: 'WelcomePackModel';
+  /** Комментарий к сбросу */
+  commentForReset?: Maybe<Scalars['String']['output']>;
+  /** Факт выдачи Welcome Pack */
+  isIssued: Scalars['Boolean']['output'];
+  /** Факт сброса выдачи welcome pack */
+  isReset: Scalars['Boolean']['output'];
+  /** Дата выдачи Welcome Pack */
+  issuedTs?: Maybe<Scalars['DateTime']['output']>;
+  /** Полное ФИО буткемп мастера который выдал welcome pack */
+  issuedUserFullName?: Maybe<Scalars['String']['output']>;
+  /** Организация ученика */
+  organisationName?: Maybe<Scalars['String']['output']>;
+  /** Табельный номер ученика */
+  personnelNumber?: Maybe<Scalars['ID']['output']>;
+  /** ID ученика */
+  studentId: Scalars['UUID']['output'];
+  /** ID записи */
+  welcomePackId: Scalars['ID']['output'];
+};
+
+export type WelcomePackReportModel = {
+  __typename?: 'WelcomePackReportModel';
+  /** Полное ФИО Botcamp мастера */
+  BmFullName?: Maybe<Scalars['String']['output']>;
+  /** Город ученика */
+  city?: Maybe<Scalars['String']['output']>;
+  /** Коментарий к сбросу факта выдачи */
+  commentForReset?: Maybe<Scalars['String']['output']>;
+  /** Факт выдачи Welcome Pack */
+  isIssued: Scalars['Boolean']['output'];
+  /** Факт сброса выдачи welcome pack */
+  isReset: Scalars['Boolean']['output'];
+  /** Дата выдачи Welcome Pack */
+  issuedTs?: Maybe<Scalars['DateTime']['output']>;
+  /** Полное ФИО буткемп мастера который выдал welcome pack */
+  issuedUserFullName?: Maybe<Scalars['String']['output']>;
+  /** Организация ученика */
+  organisationName?: Maybe<Scalars['String']['output']>;
+  /** Табельный номер ученика */
+  personnelNumber?: Maybe<Scalars['ID']['output']>;
+  /** Полное ФИО ученика */
+  studentFullName: Scalars['String']['output'];
+  /** ID ученика */
+  studentId: Scalars['UUID']['output'];
+  /** Прогресс ученика по траектории */
+  studentProgress: Scalars['Int']['output'];
+  /** Плановая дата окончания траектории */
+  trajectoryEndDate?: Maybe<Scalars['DateTime']['output']>;
+  /** Название траектории ученика */
+  trajectoryName?: Maybe<Scalars['String']['output']>;
+  /** ID записи */
+  welcomePackId: Scalars['ID']['output'];
 };
 
 export type Widget = {
@@ -55819,6 +56183,12 @@ export const CalendarEventFragmentDoc = gql`
     type
     start
     end
+    event {
+      eventUserRole
+    }
+    school {
+      shortName
+    }
   }
   bookings {
     ...CalendarReviewBooking
@@ -56226,6 +56596,7 @@ export const CoinsTransactionInfoFragmentDoc = gql`
   giverLogin
   comment
   amountAfter
+  tournamentName
 }
     `;
 export const TimelineItemChildrenFragmentDoc = gql`
@@ -61046,7 +61417,7 @@ export type CalendarEventActivityFragment = { __typename?: 'ActivityEvent', acti
 
 export type CalendarEventExamFragment = { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, name: string, location: string, currentStudentsCount: number, maxStudentCount?: number | null, updateDate: Date, goalId: string, goalName: string, isWaitListActive: boolean, isInWaitList?: boolean | null, stopRegisterDate?: Date | null };
 
-export type CalendarEventFragment = { __typename?: 'CalendarEvent', id: string, start: Date, end: Date, description: string, eventType?: string | null, eventCode?: string | null, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, type: TimeSlotTypeEnum, start: Date, end: Date }>, bookings: Array<{ __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, name: string, location: string, currentStudentsCount: number, maxStudentCount?: number | null, updateDate: Date, goalId: string, goalName: string, isWaitListActive: boolean, isInWaitList?: boolean | null, stopRegisterDate?: Date | null } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', status?: ParticipantEventStatus | null, activityType: string, isMandatory: boolean, isWaitListActive: boolean, isVisible: boolean, activityEventId: string, eventId: string, name: string, beginDate: Date, endDate: Date, isRegistered?: boolean | null, description?: string | null, currentStudentsCount: number, maxStudentCount?: number | null, location: string, updateDate: Date, isInWaitList?: boolean | null, stopRegisterDate?: Date | null, studentFeedback?: { __typename?: 'StudentEventFeedback', id: string, rating: number, comment?: string | null } | null, comments?: Array<{ __typename?: 'ParticipantEventComment', type: ParticipantEventCommentType, createTs: Date, comment: string }> | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, goals: Array<{ __typename?: 'Goal', goalId: string, goalName: string }>, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null };
+export type CalendarEventFragment = { __typename?: 'CalendarEvent', id: string, start: Date, end: Date, description: string, eventType?: string | null, eventCode?: string | null, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, type: TimeSlotTypeEnum, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }>, bookings: Array<{ __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, name: string, location: string, currentStudentsCount: number, maxStudentCount?: number | null, updateDate: Date, goalId: string, goalName: string, isWaitListActive: boolean, isInWaitList?: boolean | null, stopRegisterDate?: Date | null } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', status?: ParticipantEventStatus | null, activityType: string, isMandatory: boolean, isWaitListActive: boolean, isVisible: boolean, activityEventId: string, eventId: string, name: string, beginDate: Date, endDate: Date, isRegistered?: boolean | null, description?: string | null, currentStudentsCount: number, maxStudentCount?: number | null, location: string, updateDate: Date, isInWaitList?: boolean | null, stopRegisterDate?: Date | null, studentFeedback?: { __typename?: 'StudentEventFeedback', id: string, rating: number, comment?: string | null } | null, comments?: Array<{ __typename?: 'ParticipantEventComment', type: ParticipantEventCommentType, createTs: Date, comment: string }> | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, goals: Array<{ __typename?: 'Goal', goalId: string, goalName: string }>, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null };
 
 export type CalendarGetEventsQueryVariables = Exact<{
   from: Scalars['DateTime']['input'];
@@ -61054,7 +61425,7 @@ export type CalendarGetEventsQueryVariables = Exact<{
 }>;
 
 
-export type CalendarGetEventsQuery = { __typename?: 'Query', calendarEventS21?: { __typename?: 'CalendarEventS21Queries', getMyCalendarEvents: Array<{ __typename?: 'CalendarEvent', id: string, start: Date, end: Date, description: string, eventType?: string | null, eventCode?: string | null, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, type: TimeSlotTypeEnum, start: Date, end: Date }>, bookings: Array<{ __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, name: string, location: string, currentStudentsCount: number, maxStudentCount?: number | null, updateDate: Date, goalId: string, goalName: string, isWaitListActive: boolean, isInWaitList?: boolean | null, stopRegisterDate?: Date | null } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', status?: ParticipantEventStatus | null, activityType: string, isMandatory: boolean, isWaitListActive: boolean, isVisible: boolean, activityEventId: string, eventId: string, name: string, beginDate: Date, endDate: Date, isRegistered?: boolean | null, description?: string | null, currentStudentsCount: number, maxStudentCount?: number | null, location: string, updateDate: Date, isInWaitList?: boolean | null, stopRegisterDate?: Date | null, studentFeedback?: { __typename?: 'StudentEventFeedback', id: string, rating: number, comment?: string | null } | null, comments?: Array<{ __typename?: 'ParticipantEventComment', type: ParticipantEventCommentType, createTs: Date, comment: string }> | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, goals: Array<{ __typename?: 'Goal', goalId: string, goalName: string }>, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null }> } | null };
+export type CalendarGetEventsQuery = { __typename?: 'Query', calendarEventS21?: { __typename?: 'CalendarEventS21Queries', getMyCalendarEvents: Array<{ __typename?: 'CalendarEvent', id: string, start: Date, end: Date, description: string, eventType?: string | null, eventCode?: string | null, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, type: TimeSlotTypeEnum, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }>, bookings: Array<{ __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, name: string, location: string, currentStudentsCount: number, maxStudentCount?: number | null, updateDate: Date, goalId: string, goalName: string, isWaitListActive: boolean, isInWaitList?: boolean | null, stopRegisterDate?: Date | null } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', status?: ParticipantEventStatus | null, activityType: string, isMandatory: boolean, isWaitListActive: boolean, isVisible: boolean, activityEventId: string, eventId: string, name: string, beginDate: Date, endDate: Date, isRegistered?: boolean | null, description?: string | null, currentStudentsCount: number, maxStudentCount?: number | null, location: string, updateDate: Date, isInWaitList?: boolean | null, stopRegisterDate?: Date | null, studentFeedback?: { __typename?: 'StudentEventFeedback', id: string, rating: number, comment?: string | null } | null, comments?: Array<{ __typename?: 'ParticipantEventComment', type: ParticipantEventCommentType, createTs: Date, comment: string }> | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, goals: Array<{ __typename?: 'Goal', goalId: string, goalName: string }>, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null }> } | null };
 
 export type CalendarExamFragment = { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, name: string, location: string, maxStudentCount?: number | null, currentStudentsCount: number, updateDate: Date, goalId: string, goalName: string, isWaitListActive: boolean, isInWaitList?: boolean | null, stopRegisterDate?: Date | null };
 
@@ -61188,7 +61559,7 @@ export type CalendarAddEventMutationVariables = Exact<{
 }>;
 
 
-export type CalendarAddEventMutation = { __typename?: 'Mutation', student?: { __typename?: 'StudentMutations', addEventToTimetable: Array<{ __typename?: 'CalendarEvent', id: string, start: Date, end: Date, description: string, eventType?: string | null, eventCode?: string | null, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, type: TimeSlotTypeEnum, start: Date, end: Date }>, bookings: Array<{ __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, name: string, location: string, currentStudentsCount: number, maxStudentCount?: number | null, updateDate: Date, goalId: string, goalName: string, isWaitListActive: boolean, isInWaitList?: boolean | null, stopRegisterDate?: Date | null } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', status?: ParticipantEventStatus | null, activityType: string, isMandatory: boolean, isWaitListActive: boolean, isVisible: boolean, activityEventId: string, eventId: string, name: string, beginDate: Date, endDate: Date, isRegistered?: boolean | null, description?: string | null, currentStudentsCount: number, maxStudentCount?: number | null, location: string, updateDate: Date, isInWaitList?: boolean | null, stopRegisterDate?: Date | null, studentFeedback?: { __typename?: 'StudentEventFeedback', id: string, rating: number, comment?: string | null } | null, comments?: Array<{ __typename?: 'ParticipantEventComment', type: ParticipantEventCommentType, createTs: Date, comment: string }> | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, goals: Array<{ __typename?: 'Goal', goalId: string, goalName: string }>, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null }> } | null };
+export type CalendarAddEventMutation = { __typename?: 'Mutation', student?: { __typename?: 'StudentMutations', addEventToTimetable: Array<{ __typename?: 'CalendarEvent', id: string, start: Date, end: Date, description: string, eventType?: string | null, eventCode?: string | null, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, type: TimeSlotTypeEnum, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }>, bookings: Array<{ __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, name: string, location: string, currentStudentsCount: number, maxStudentCount?: number | null, updateDate: Date, goalId: string, goalName: string, isWaitListActive: boolean, isInWaitList?: boolean | null, stopRegisterDate?: Date | null } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', status?: ParticipantEventStatus | null, activityType: string, isMandatory: boolean, isWaitListActive: boolean, isVisible: boolean, activityEventId: string, eventId: string, name: string, beginDate: Date, endDate: Date, isRegistered?: boolean | null, description?: string | null, currentStudentsCount: number, maxStudentCount?: number | null, location: string, updateDate: Date, isInWaitList?: boolean | null, stopRegisterDate?: Date | null, studentFeedback?: { __typename?: 'StudentEventFeedback', id: string, rating: number, comment?: string | null } | null, comments?: Array<{ __typename?: 'ParticipantEventComment', type: ParticipantEventCommentType, createTs: Date, comment: string }> | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, goals: Array<{ __typename?: 'Goal', goalId: string, goalName: string }>, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null }> } | null };
 
 export type CalendarChangeEventSlotMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -61197,7 +61568,7 @@ export type CalendarChangeEventSlotMutationVariables = Exact<{
 }>;
 
 
-export type CalendarChangeEventSlotMutation = { __typename?: 'Mutation', student?: { __typename?: 'StudentMutations', changeEventSlot: Array<{ __typename?: 'CalendarEvent', id: string, start: Date, end: Date, description: string, eventType?: string | null, eventCode?: string | null, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, type: TimeSlotTypeEnum, start: Date, end: Date }>, bookings: Array<{ __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, name: string, location: string, currentStudentsCount: number, maxStudentCount?: number | null, updateDate: Date, goalId: string, goalName: string, isWaitListActive: boolean, isInWaitList?: boolean | null, stopRegisterDate?: Date | null } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', status?: ParticipantEventStatus | null, activityType: string, isMandatory: boolean, isWaitListActive: boolean, isVisible: boolean, activityEventId: string, eventId: string, name: string, beginDate: Date, endDate: Date, isRegistered?: boolean | null, description?: string | null, currentStudentsCount: number, maxStudentCount?: number | null, location: string, updateDate: Date, isInWaitList?: boolean | null, stopRegisterDate?: Date | null, studentFeedback?: { __typename?: 'StudentEventFeedback', id: string, rating: number, comment?: string | null } | null, comments?: Array<{ __typename?: 'ParticipantEventComment', type: ParticipantEventCommentType, createTs: Date, comment: string }> | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, goals: Array<{ __typename?: 'Goal', goalId: string, goalName: string }>, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null }> } | null };
+export type CalendarChangeEventSlotMutation = { __typename?: 'Mutation', student?: { __typename?: 'StudentMutations', changeEventSlot: Array<{ __typename?: 'CalendarEvent', id: string, start: Date, end: Date, description: string, eventType?: string | null, eventCode?: string | null, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, type: TimeSlotTypeEnum, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }>, bookings: Array<{ __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, name: string, location: string, currentStudentsCount: number, maxStudentCount?: number | null, updateDate: Date, goalId: string, goalName: string, isWaitListActive: boolean, isInWaitList?: boolean | null, stopRegisterDate?: Date | null } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', status?: ParticipantEventStatus | null, activityType: string, isMandatory: boolean, isWaitListActive: boolean, isVisible: boolean, activityEventId: string, eventId: string, name: string, beginDate: Date, endDate: Date, isRegistered?: boolean | null, description?: string | null, currentStudentsCount: number, maxStudentCount?: number | null, location: string, updateDate: Date, isInWaitList?: boolean | null, stopRegisterDate?: Date | null, studentFeedback?: { __typename?: 'StudentEventFeedback', id: string, rating: number, comment?: string | null } | null, comments?: Array<{ __typename?: 'ParticipantEventComment', type: ParticipantEventCommentType, createTs: Date, comment: string }> | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, goals: Array<{ __typename?: 'Goal', goalId: string, goalName: string }>, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null }> } | null };
 
 export type CalendarDeleteEventSlotMutationVariables = Exact<{
   eventSlotId: Scalars['ID']['input'];
@@ -61477,12 +61848,12 @@ export type PasswordChangeSetPasswordMutationVariables = Exact<{
 
 export type PasswordChangeSetPasswordMutation = { __typename?: 'Mutation', user?: { __typename?: 'UserMutations', setPassword?: { __typename?: 'User', id: string } | null } | null };
 
-export type CoinsTransactionInfoFragment = { __typename?: 'UserCoinsHistoryItemModel', id: number, itemType: UserCoinsHistoryItemType, amount: number, date: Date, badgeName?: string | null, badgeAvatar?: string | null, externalTransactionId?: number | null, giverLogin?: string | null, comment?: string | null, amountAfter: number };
+export type CoinsTransactionInfoFragment = { __typename?: 'UserCoinsHistoryItemModel', id: number, itemType: UserCoinsHistoryItemType, amount: number, date: Date, badgeName?: string | null, badgeAvatar?: string | null, externalTransactionId?: number | null, giverLogin?: string | null, comment?: string | null, amountAfter: number, tournamentName?: string | null };
 
 export type GetCoinsHistoryQueryVariables = Exact<{ [key: string]: never; }>;
 
 
-export type GetCoinsHistoryQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getUserCoinsHistory?: Array<{ __typename?: 'UserCoinsHistoryItemModel', id: number, itemType: UserCoinsHistoryItemType, amount: number, date: Date, badgeName?: string | null, badgeAvatar?: string | null, externalTransactionId?: number | null, giverLogin?: string | null, comment?: string | null, amountAfter: number }> | null } | null };
+export type GetCoinsHistoryQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getUserCoinsHistory?: Array<{ __typename?: 'UserCoinsHistoryItemModel', id: number, itemType: UserCoinsHistoryItemType, amount: number, date: Date, badgeName?: string | null, badgeAvatar?: string | null, externalTransactionId?: number | null, giverLogin?: string | null, comment?: string | null, amountAfter: number, tournamentName?: string | null }> | null } | null };
 
 export type PublicProfileGetProjectsQueryVariables = Exact<{
   studentId: Scalars['UUID']['input'];
