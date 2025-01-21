@@ -19118,6 +19118,31 @@ export type GoalReviewInfo = {
   pendingMulticampusReviews: Scalars['Int']['output'];
 };
 
+/** Краткая информация о проекте */
+export type GoalShortInfo = {
+  __typename?: 'GoalShortInfo';
+  /** Идентификатор проекта */
+  goalId?: Maybe<Scalars['ID']['output']>;
+  /** Название проекта */
+  goalName?: Maybe<Scalars['String']['output']>;
+};
+
+/** Краткая информация об источнике проекте */
+export type GoalSourceShortInfo = {
+  __typename?: 'GoalSourceShortInfo';
+  /** Идентификатор источника проекта */
+  goalSourceId?: Maybe<Scalars['ID']['output']>;
+  /** Название источника проекта */
+  goalSourceName?: Maybe<Scalars['String']['output']>;
+};
+
+/** Типы источников проектов */
+export enum GoalSourceTypeEnum {
+  Course = 'COURSE',
+  StagePlan = 'STAGE_PLAN',
+  StudyProgram = 'STUDY_PROGRAM'
+}
+
 /** Статус модуля */
 export enum GoalStatus {
   /** Пройден */
@@ -19436,39 +19461,31 @@ export type HolyGraph = {
   version?: Maybe<Scalars['Int']['output']>;
 };
 
-/** Связи между элементами графа */
-export type HolyGraphEdge = {
-  __typename?: 'HolyGraphEdge';
-  /** Ид связи */
-  id: Scalars['String']['output'];
-  /** id группы-источника */
-  source: Scalars['String']['output'];
-  /** id точки выхода */
-  sourceHandle: Scalars['String']['output'];
-  /** id группы-приемника */
-  target: Scalars['String']['output'];
-  /** id точки входа */
-  targetHandle: Scalars['String']['output'];
-};
-
-/** Контекст графа глобального плана */
-export type HolyGraphGlobalPlan = {
-  __typename?: 'HolyGraphGlobalPlan';
-  /** Id глобального плана */
-  globalPlanId?: Maybe<Scalars['Int']['output']>;
-  /** Учебные модули глобального плана */
-  items: Array<HolyGraphGlobalPlanItem>;
-  /** Статус плана */
-  planStatus?: Maybe<PlanStatusEnum>;
+/** Контекст графа по заданным источникам */
+export type HolyGraphContentBunch = {
+  __typename?: 'HolyGraphContentBunch';
+  /** Перечень Id источников проектов */
+  contentBunchIds: Array<Scalars['Int']['output']>;
+  /** Тип источников проектов */
+  contentBunchType: HolyGraphContentBunchTypeEnum;
+  /** Учебные модули заданных источников */
+  items: Array<HolyGraphContentBunchItem>;
   /** Id параллели */
   stageId?: Maybe<Scalars['Int']['output']>;
-  /** Id предмета */
-  subjectId?: Maybe<Scalars['Int']['output']>;
+};
+
+/** Источник проектов */
+export type HolyGraphContentBunchEntity = {
+  __typename?: 'HolyGraphContentBunchEntity';
+  /** Id источника проектов */
+  id: Scalars['Int']['output'];
+  /** Наименование источника проектов */
+  name?: Maybe<Scalars['String']['output']>;
 };
 
 /** Учебные модули глобального плана */
-export type HolyGraphGlobalPlanItem = {
-  __typename?: 'HolyGraphGlobalPlanItem';
+export type HolyGraphContentBunchItem = {
+  __typename?: 'HolyGraphContentBunchItem';
   /** Детальная информация о курсе */
   course?: Maybe<HolyGraphItemCourseInfo>;
   /** Ид связанной сущности */
@@ -19479,6 +19496,45 @@ export type HolyGraphGlobalPlanItem = {
   goal?: Maybe<HolyGraphItemGoalInfo>;
   /** Направления обучения (навыки) */
   skills: Array<HolyGraphItemSkill>;
+};
+
+export enum HolyGraphContentBunchTypeEnum {
+  /** Курс */
+  Course = 'COURSE',
+  /** Глобальный план */
+  GlobalPlan = 'GLOBAL_PLAN',
+  /** Учебная программа */
+  StudyProgram = 'STUDY_PROGRAM'
+}
+
+/** Связи между элементами графа */
+export type HolyGraphEdge = {
+  __typename?: 'HolyGraphEdge';
+  /** Траектория связи */
+  data: HolyGraphEdgeData;
+  /** Ид связи */
+  id: Scalars['String']['output'];
+  /** id группы-источника */
+  source: Scalars['String']['output'];
+  /** id точки выхода */
+  sourceHandle: Scalars['String']['output'];
+  /** id группы-приемника */
+  target: Scalars['String']['output'];
+  /** id точки входа */
+  targetHandle: Scalars['String']['output'];
+  /** Тип связи */
+  type: Scalars['String']['output'];
+};
+
+/** Траектория связи графа */
+export type HolyGraphEdgeData = {
+  __typename?: 'HolyGraphEdgeData';
+  /** Координаты точек траектории связи */
+  points: Array<HolyGraphPointPosition>;
+  /** Расстояние до источника */
+  sourceGap: Scalars['Int']['output'];
+  /** Расстояние до назначения */
+  targetGap: Scalars['Int']['output'];
 };
 
 /** Детальная информация о курсе */
@@ -19591,6 +19647,8 @@ export type HolyGraphMutationsDeleteDraftArgs = {
 
 export type HolyGraphMutationsPublishGraphArgs = {
   comment?: InputMaybe<Scalars['String']['input']>;
+  contentBunchIds: Array<Scalars['Int']['input']>;
+  contentBunchType: HolyGraphContentBunchTypeEnum;
   graph: Scalars['JsonNode']['input'];
   stageId: Scalars['Int']['input'];
 };
@@ -19603,6 +19661,8 @@ export type HolyGraphMutationsRestoreArchivedGraphArgs = {
 
 
 export type HolyGraphMutationsSaveDraftArgs = {
+  contentBunchIds?: InputMaybe<Array<InputMaybe<Scalars['Int']['input']>>>;
+  contentBunchType?: InputMaybe<HolyGraphContentBunchTypeEnum>;
   graph: Scalars['JsonNode']['input'];
   stageId: Scalars['Int']['input'];
 };
@@ -19610,6 +19670,8 @@ export type HolyGraphMutationsSaveDraftArgs = {
 /** Группы элементов графа */
 export type HolyGraphNode = {
   __typename?: 'HolyGraphNode';
+  /** Точки входа/выхода */
+  handles: Array<Scalars['String']['output']>;
   /** Ид группы */
   id: Scalars['String']['output'];
   /** Элементы группы */
@@ -19652,16 +19714,25 @@ export type HolyGraphNodePosition = {
   y: Scalars['Int']['output'];
 };
 
+/** Координаты точек траектории связи */
+export type HolyGraphPointPosition = {
+  __typename?: 'HolyGraphPointPosition';
+  x: Scalars['Int']['output'];
+  y: Scalars['Int']['output'];
+};
+
 export type HolyGraphQueries = {
   __typename?: 'HolyGraphQueries';
   /** Получить архивную версию графа для указанной параллели */
   getArchivedGraph?: Maybe<HolyGraphJson>;
   /** Получить список архивных версий графа для указанной параллели */
   getArchivedGraphVersions: Array<HolyGraphVersion>;
+  /** Получить контекст графа по заданным источникам */
+  getContentBunchGraph?: Maybe<HolyGraphContentBunch>;
+  /** Получить источники проектов по типу */
+  getContentBunchesByType: Array<HolyGraphContentBunchEntity>;
   /** Получить черновик графа пользователя */
   getDraftGraph?: Maybe<HolyGraphJson>;
-  /** Получить контекст графа глобального плана */
-  getGlobalPlanGraph?: Maybe<HolyGraphGlobalPlan>;
   /** Получить граф по указанному Id */
   getGraph?: Maybe<HolyGraphJson>;
   /** Получить опубликованный граф для указанной параллели */
@@ -19690,13 +19761,21 @@ export type HolyGraphQueriesGetArchivedGraphVersionsArgs = {
 };
 
 
-export type HolyGraphQueriesGetDraftGraphArgs = {
+export type HolyGraphQueriesGetContentBunchGraphArgs = {
+  contentBunchIds: Array<Scalars['Int']['input']>;
+  contentBunchType: HolyGraphContentBunchTypeEnum;
   stageId: Scalars['Int']['input'];
 };
 
 
-export type HolyGraphQueriesGetGlobalPlanGraphArgs = {
-  globalPlanId?: InputMaybe<Scalars['Int']['input']>;
+export type HolyGraphQueriesGetContentBunchesByTypeArgs = {
+  contentBunchType: HolyGraphContentBunchTypeEnum;
+  stageId: Scalars['Int']['input'];
+};
+
+
+export type HolyGraphQueriesGetDraftGraphArgs = {
+  stageId: Scalars['Int']['input'];
 };
 
 
@@ -19739,8 +19818,10 @@ export type HolyGraphStage = {
   __typename?: 'HolyGraphStage';
   /** Комментарий к версии графа */
   comment?: Maybe<Scalars['String']['output']>;
-  /** Id глобального плана */
-  globalPlanId?: Maybe<Scalars['Int']['output']>;
+  /** Перечень Id источников проектов */
+  contentBunchIds: Array<Scalars['Int']['output']>;
+  /** Тип источников проектов */
+  contentBunchType: HolyGraphContentBunchTypeEnum;
   /** Id графа */
   graphId: Scalars['Int']['output'];
   /** Id параллели */
@@ -31246,8 +31327,12 @@ export type School21Queries = {
   getGoalAttemptStatisticByStudent?: Maybe<Array<Maybe<StudentGoalAttemptStatistic>>>;
   /** S21. Публичный профиль студента. Получение информации по ретраям проекта */
   getGoalRetryInfo: StudentGoalRetryInfo;
+  /** S21. Возвращает список источников проектов по типу источника */
+  getGoalSources: Array<GoalSourceShortInfo>;
   /** S21. Публичный профиль студента. получение названия проекта */
   getGoalTitleById: Scalars['String']['output'];
+  /** S21. Возвращает список проектов по типу и Id источника */
+  getGoalsByGoalSourceId: Array<GoalShortInfo>;
   /** S21. Получить данные для тепловой карты по статистике таймслотов студентов школы */
   getHeatMapCampusCalendarTimeSlot: P2pHeatMapWithMean;
   /** S21. Получить данные для тепловой карты по статистике событий студента */
@@ -31388,6 +31473,8 @@ export type School21Queries = {
   loadStudentsPerformanceS21Report: ReportExcelFile;
   /** S21. Запрос отчета по командам */
   loadStudentsTeamS21Report: ReportExcelFile;
+  /** S21. Запрос отчета по командам */
+  loadStudentsTeamS21ReportV2: ReportExcelFile;
 };
 
 
@@ -31583,8 +31670,23 @@ export type School21QueriesGetGoalRetryInfoArgs = {
 };
 
 
+export type School21QueriesGetGoalSourcesArgs = {
+  goalSourceType: GoalSourceTypeEnum;
+  schoolId: Scalars['UUID']['input'];
+  stageSubjectGroupId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+
 export type School21QueriesGetGoalTitleByIdArgs = {
   goalId: Scalars['ID']['input'];
+};
+
+
+export type School21QueriesGetGoalsByGoalSourceIdArgs = {
+  goalSourceId: Scalars['ID']['input'];
+  goalSourceType: GoalSourceTypeEnum;
+  schoolId: Scalars['UUID']['input'];
+  stageSubjectGroupId?: InputMaybe<Scalars['ID']['input']>;
 };
 
 
@@ -31938,6 +32040,16 @@ export type School21QueriesLoadStudentsTeamS21ReportArgs = {
   goalId?: InputMaybe<Scalars['ID']['input']>;
   schoolId?: InputMaybe<Scalars['UUID']['input']>;
   stageId: Scalars['ID']['input'];
+  stageSubjectGroupId?: InputMaybe<Scalars['ID']['input']>;
+  timeZone?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type School21QueriesLoadStudentsTeamS21ReportV2Args = {
+  goalId?: InputMaybe<Scalars['ID']['input']>;
+  goalSourceId: Scalars['ID']['input'];
+  goalSourceType: GoalSourceTypeEnum;
+  schoolId: Scalars['UUID']['input'];
   stageSubjectGroupId?: InputMaybe<Scalars['ID']['input']>;
   timeZone?: InputMaybe<Scalars['String']['input']>;
 };
@@ -59288,10 +59400,19 @@ export const ProjectMapGetStudentGraphTemplateDocument = gql`
         target
         sourceHandle
         targetHandle
+        data {
+          sourceGap
+          targetGap
+          points {
+            x
+            y
+          }
+        }
       }
       nodes {
         id
         label
+        handles
         position {
           x
           y
@@ -62030,7 +62151,7 @@ export type ProjectMapGetStudentGraphTemplateQueryVariables = Exact<{
 }>;
 
 
-export type ProjectMapGetStudentGraphTemplateQuery = { __typename?: 'Query', holyGraph?: { __typename?: 'HolyGraphQueries', getStudentGraphTemplate?: { __typename?: 'HolyGraphJSON', edges: Array<{ __typename?: 'HolyGraphEdge', id: string, source: string, target: string, sourceHandle: string, targetHandle: string }>, nodes: Array<{ __typename?: 'HolyGraphNode', id: string, label: string, position: { __typename?: 'HolyGraphNodePosition', x: number, y: number }, items: Array<{ __typename?: 'HolyGraphNodeItem', id: string, code: string, handles: Array<string>, entityType: HolyGraphItemEntityType, entityId: number, parentNodeCodes: Array<string>, childrenNodeCodes: Array<string>, skills: Array<{ __typename?: 'HolyGraphItemSkill', id: string, name: string, color: string, textColor?: string | null }>, goal?: { __typename?: 'HolyGraphItemGoalInfo', projectId: number, projectName: string, projectDescription?: string | null, projectPoints?: number | null, goalExecutionType?: ModuleExecutionType | null, isMandatory?: boolean | null } | null, course?: { __typename?: 'HolyGraphItemCourseInfo', projectId: number, projectName: string, projectDescription?: string | null, projectPoints?: number | null, courseType?: CourseType | null, isMandatory?: boolean | null } | null }> }> } | null } | null };
+export type ProjectMapGetStudentGraphTemplateQuery = { __typename?: 'Query', holyGraph?: { __typename?: 'HolyGraphQueries', getStudentGraphTemplate?: { __typename?: 'HolyGraphJSON', edges: Array<{ __typename?: 'HolyGraphEdge', id: string, source: string, target: string, sourceHandle: string, targetHandle: string, data: { __typename?: 'HolyGraphEdgeData', sourceGap: number, targetGap: number, points: Array<{ __typename?: 'HolyGraphPointPosition', x: number, y: number }> } }>, nodes: Array<{ __typename?: 'HolyGraphNode', id: string, label: string, handles: Array<string>, position: { __typename?: 'HolyGraphNodePosition', x: number, y: number }, items: Array<{ __typename?: 'HolyGraphNodeItem', id: string, code: string, handles: Array<string>, entityType: HolyGraphItemEntityType, entityId: number, parentNodeCodes: Array<string>, childrenNodeCodes: Array<string>, skills: Array<{ __typename?: 'HolyGraphItemSkill', id: string, name: string, color: string, textColor?: string | null }>, goal?: { __typename?: 'HolyGraphItemGoalInfo', projectId: number, projectName: string, projectDescription?: string | null, projectPoints?: number | null, goalExecutionType?: ModuleExecutionType | null, isMandatory?: boolean | null } | null, course?: { __typename?: 'HolyGraphItemCourseInfo', projectId: number, projectName: string, projectDescription?: string | null, projectPoints?: number | null, courseType?: CourseType | null, isMandatory?: boolean | null } | null }> }> } | null } | null };
 
 export type ProjectMapGetStudentStageGroupsQueryVariables = Exact<{
   studentId: Scalars['UUID']['input'];
