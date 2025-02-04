@@ -2,6 +2,7 @@
 	"$schema": "node_modules/@biomejs/biome/configuration_schema.json",
 	"extends": ["node_modules/@s21toolkit/shared/biome.json"],
 	"files": {
-		"ignore": ["src/sdk.ts"]
+		"ignore": ["src/sdk.ts"],
+		"maxSize": 5242880
 	}
 }
