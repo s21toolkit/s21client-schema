@@ -237,6 +237,13 @@ export enum AsapWidgetTypeEnum {
   PopupTxt = 'POPUP_TXT'
 }
 
+export type Ability = {
+  __typename?: 'Ability';
+  abilityId: Scalars['ID']['output'];
+  abilityName: Scalars['String']['output'];
+  imageUrl?: Maybe<Scalars['String']['output']>;
+};
+
 /** Значение характеристик: Урон, Здоровье и т.д. */
 export type AbilityPower = {
   __typename?: 'AbilityPower';
@@ -248,6 +255,13 @@ export type AbilityPower = {
   name: Scalars['String']['output'];
   /** Значение */
   power: Scalars['Int']['output'];
+};
+
+export type AbilityPowerInputModel = {
+  /** ID характеристики */
+  abilityId: Scalars['ID']['input'];
+  /** Количество начисляемых значений характеристики */
+  power: Scalars['Int']['input'];
 };
 
 export type AcademicYear = {
@@ -338,11 +352,13 @@ export type AccUserInfoModel = {
   isCapitan: Scalars['Boolean']['output'];
   isOldStageGroup: Scalars['Boolean']['output'];
   projectId?: Maybe<Scalars['UUID']['output']>;
+  readyProject?: Maybe<Scalars['Boolean']['output']>;
   resumeId?: Maybe<Scalars['UUID']['output']>;
   stageGroupId: Scalars['Int']['output'];
   stageGroupName: Scalars['String']['output'];
   teamId?: Maybe<Scalars['UUID']['output']>;
   userType?: Maybe<Scalars['String']['output']>;
+  utm?: Maybe<Scalars['String']['output']>;
 };
 
 export type AcceleratorJoinCheckResult = {
@@ -979,6 +995,8 @@ export type AcceleratorQueries = {
   downloadFile: Scalars['String']['output'];
   exportAsyncModulesReportToXLS: ReportExcelFile;
   exportAsyncUniversityModulesReportToXLS: ReportExcelFile;
+  /** Отчет по сообщениям GigaChat */
+  exportGigaChatReportToXLS: ReportExcelFile;
   /** Получение списка опросов с данными по метрикам */
   exportMetricReportToXLS: ReportExcelFile;
   /** Получение файла Excel с отчетом в формате Base64 */
@@ -1281,6 +1299,11 @@ export type AcceleratorQueriesCreateUniversityModulesReportXlsArgs = {
 
 export type AcceleratorQueriesDownloadFileArgs = {
   fileId: Scalars['UUID']['input'];
+};
+
+
+export type AcceleratorQueriesExportGigaChatReportToXlsArgs = {
+  filter?: InputMaybe<GigaChatHistoryRequest>;
 };
 
 
@@ -4259,6 +4282,23 @@ export type AwardCondition = {
   id: Scalars['Int']['output'];
 };
 
+export type AwardInputModel = {
+  assignmentIds: Array<Scalars['ID']['input']>;
+  /** Условия получения */
+  awardConditionId: Scalars['Int']['input'];
+  /**
+   * ID награды
+   * {null} если создается новая
+   */
+  awardId?: InputMaybe<Scalars['Int']['input']>;
+  equipment?: InputMaybe<EquipmentInputModel>;
+  /** Статус активности награды */
+  isActive: Scalars['Boolean']['input'];
+  /** Количество очков опыта */
+  pointsToAdd?: InputMaybe<Scalars['Int']['input']>;
+  systemAssignmentEnabled: Scalars['Boolean']['input'];
+};
+
 /** Справочник уровней наград */
 export type AwardLevel = {
   __typename?: 'AwardLevel';
@@ -4290,8 +4330,17 @@ export type AwardMutations = {
   copyBadgeAward: Award;
   /** Создать бэйдж */
   createBadgeAward: Award;
+  /** Создание награды типа "экипировка" */
+  createEquipmentAward: Award;
+  /** Удаление награды типа "экипировка" */
+  deleteEquipmentAward: Scalars['Boolean']['output'];
   /** Редактировать бэйдж */
   editBadgeAward: Award;
+  /**
+   * Редактирование награды типа "экипировка"
+   * Так же можно через эту ручку архивировать награду
+   */
+  editEquipmentAward: Award;
 };
 
 
@@ -4312,16 +4361,38 @@ export type AwardMutationsCreateBadgeAwardArgs = {
 };
 
 
+export type AwardMutationsCreateEquipmentAwardArgs = {
+  createAward?: InputMaybe<AwardInputModel>;
+};
+
+
+export type AwardMutationsDeleteEquipmentAwardArgs = {
+  awardId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+
 export type AwardMutationsEditBadgeAwardArgs = {
   awardId: Scalars['ID']['input'];
   badgeAwardInputModel: BadgeAwardInput;
   schoolId: Scalars['UUID']['input'];
 };
 
+
+export type AwardMutationsEditEquipmentAwardArgs = {
+  editAward?: InputMaybe<AwardInputModel>;
+};
+
 export type AwardQueries = {
   __typename?: 'AwardQueries';
+  /** Возвращает все награды типа "экипировка" для конкретной школы */
+  getAllEquipmentAward: Array<Award>;
+  getAllInfoForCreateAward: InfoForCreateAward;
   /** Получение награды по идентификатору */
   getAwardById: Award;
+  /** Получаем информацию по использованию наград виде экипировки закрепленных за определенным модулем */
+  getAwardInfoForModule: Array<InfoWhereAwardIsUsed>;
+  /** Получаем информацию по использованию награды в виде экипировки в различных модулях */
+  getAwardInfoWithModuleInfo?: Maybe<InfoWhereAwardIsUsed>;
   /** Доступные награды для выдачи */
   getAwards: Array<Award>;
   /** количество доступных наград для выдачи */
@@ -4338,6 +4409,16 @@ export type AwardQueries = {
 
 
 export type AwardQueriesGetAwardByIdArgs = {
+  awardId: Scalars['ID']['input'];
+};
+
+
+export type AwardQueriesGetAwardInfoForModuleArgs = {
+  moduleId: Scalars['ID']['input'];
+};
+
+
+export type AwardQueriesGetAwardInfoWithModuleInfoArgs = {
   awardId: Scalars['ID']['input'];
 };
 
@@ -9686,6 +9767,21 @@ export type CalendarTimeSlot = {
   start: Scalars['DateTime']['output'];
   /** Тип слота */
   type: TimeSlotTypeEnum;
+};
+
+export type CaptureFileInput = {
+  /** Расширение картинки */
+  extension: FileExtensionEnum;
+  /**
+   * Картинка закодирована в base64
+   * {null} в том случае если не создается новая
+   */
+  fileBase64?: InputMaybe<Scalars['String']['input']>;
+  /**
+   * Путь к картинке
+   * {null} в том случае если создается новая
+   */
+  filePath?: InputMaybe<Scalars['String']['input']>;
 };
 
 export type CatalogErrorDescription = {
@@ -15302,6 +15398,27 @@ export type Equipment = {
   name: Scalars['String']['output'];
 };
 
+export type EquipmentInputModel = {
+  /** Дополнительные характеристики экипировки */
+  abilities?: InputMaybe<Array<AbilityPowerInputModel>>;
+  /** Аватарка экипировки */
+  avatarImg: CaptureFileInput;
+  /** Картинка надетой экипировки */
+  dressedImg: CaptureFileInput;
+  /** Уровень экипировки */
+  equipmentLevelId: Scalars['ID']['input'];
+  /** Слот надевания экипировки */
+  equipmentSlotId: Scalars['ID']['input'];
+  /** Название экипировки */
+  name: Scalars['String']['input'];
+};
+
+export type EquipmentLevelInfo = {
+  __typename?: 'EquipmentLevelInfo';
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+};
+
 /** Слот для экипировки */
 export enum EquipmentSlotEnum {
   /** Тело */
@@ -15327,6 +15444,12 @@ export enum EquipmentSlotEnum {
   /** Футболка */
   TShirt = 'T_SHIRT'
 }
+
+export type EquipmentSlotInfo = {
+  __typename?: 'EquipmentSlotInfo';
+  id: Scalars['ID']['output'];
+  name: Scalars['String']['output'];
+};
 
 export type EvaluatedTaskCriterion = {
   __typename?: 'EvaluatedTaskCriterion';
@@ -17154,7 +17277,8 @@ export enum FileExtensionEnum {
   Xlsx = 'XLSX',
   Xml = 'XML',
   Yaml = 'YAML',
-  Yml = 'YML'
+  Yml = 'YML',
+  Zip = 'ZIP'
 }
 
 export type FileInput = {
@@ -17792,6 +17916,7 @@ export type GamificationMutationsSetHistoryShowedArgs = {
 
 
 export type GamificationMutationsSetModuleAwardsArgs = {
+  isBootcamp?: InputMaybe<Scalars['Boolean']['input']>;
   moduleAwards: Array<ModuleAwardInput>;
   moduleId: Scalars['ID']['input'];
 };
@@ -18023,6 +18148,11 @@ export type GetVisitJournalRulesResponse = {
   __typename?: 'GetVisitJournalRulesResponse';
   student: Student;
   visitJournalRules: Array<VisitJournalRule>;
+};
+
+export type GigaChatHistoryRequest = {
+  createdDateFrom: Scalars['Date']['input'];
+  createdDateTo: Scalars['Date']['input'];
 };
 
 /** Сообщение GigaChat, отправленное пользователем или полученное в ответ */
@@ -20010,6 +20140,7 @@ export type IProject = {
   description: Scalars['String']['output'];
   files?: Maybe<Array<Maybe<ProjectFile>>>;
   id: Scalars['UUID']['output'];
+  legalName?: Maybe<Scalars['String']['output']>;
   logotypeUrl?: Maybe<Scalars['String']['output']>;
   modifiedAt: Scalars['DateTime']['output'];
   name: Scalars['String']['output'];
@@ -20039,6 +20170,28 @@ export type IndicatorsSettingExamTestPageModel = {
   pageId: Scalars['UUID']['output'];
   /** Вес страницы */
   pageWeight: Scalars['Float']['output'];
+};
+
+export type InfoForCreateAward = {
+  __typename?: 'InfoForCreateAward';
+  /** Типы назначения */
+  assignmentTypes: Array<AssignmentType>;
+  /** Типы назначения */
+  awardConditions: Array<AwardCondition>;
+  equipmentAward?: Maybe<InfoForCreateEquipment>;
+};
+
+export type InfoForCreateEquipment = {
+  __typename?: 'InfoForCreateEquipment';
+  abilityTypes: Array<Ability>;
+  equipmentLevels: Array<EquipmentLevelInfo>;
+  equipmentSlots: Array<EquipmentSlotInfo>;
+};
+
+export type InfoWhereAwardIsUsed = {
+  __typename?: 'InfoWhereAwardIsUsed';
+  award: Award;
+  usedInTrajectory?: Maybe<Array<TrajectoryWithUsedModels>>;
 };
 
 export type InnopolisDigitalContent = {
@@ -23189,12 +23342,16 @@ export type MigrationToCatalogResultV2 = {
 
 export type MilestoneReport = {
   __typename?: 'MilestoneReport';
+  /** Метка канала привлечения */
+  UTM?: Maybe<Scalars['String']['output']>;
   /** Время и дата ответа */
   answerDateTime?: Maybe<Scalars['DateTime']['output']>;
   /** Ссылка на ответы (список файлов) */
   answerFiles?: Maybe<Array<AnswerFile>>;
   /** Статус прохождения */
   grade?: Maybe<AcceleratorProjectGrade>;
+  /** Наименование ЮЛ */
+  legalName?: Maybe<Scalars['String']['output']>;
   /** Список участников проекта */
   memberModelList?: Maybe<Array<Maybe<TeamMember>>>;
   /** Этап */
@@ -23205,6 +23362,8 @@ export type MilestoneReport = {
   modifiedUserId?: Maybe<Scalars['UUID']['output']>;
   /** Данные проекта */
   project: Project;
+  /** Регистрация с проектом */
+  readyProject?: Maybe<Scalars['Boolean']['output']>;
   /** Балл */
   score?: Maybe<Scalars['Int']['output']>;
   /** Наименование ТБ */
@@ -23236,6 +23395,8 @@ export type MilestoneReportFilter = {
   projectFlowId?: InputMaybe<Scalars['UUID']['input']>;
   /** Массив id проектов */
   projectId?: InputMaybe<Array<InputMaybe<Scalars['UUID']['input']>>>;
+  /** Регистрация с проектом */
+  readyProject?: InputMaybe<Scalars['Boolean']['input']>;
   /** Массив ID регионов проекта */
   region?: InputMaybe<Array<InputMaybe<Scalars['UUID']['input']>>>;
   /** Балл */
@@ -27693,6 +27854,7 @@ export type Project = IProject & {
   description: Scalars['String']['output'];
   files?: Maybe<Array<Maybe<ProjectFile>>>;
   id: Scalars['UUID']['output'];
+  legalName?: Maybe<Scalars['String']['output']>;
   logotypeUrl?: Maybe<Scalars['String']['output']>;
   modifiedAt: Scalars['DateTime']['output'];
   name: Scalars['String']['output'];
@@ -27775,6 +27937,7 @@ export type ProjectCard = IProject & {
   description: Scalars['String']['output'];
   files?: Maybe<Array<Maybe<ProjectFile>>>;
   id: Scalars['UUID']['output'];
+  legalName?: Maybe<Scalars['String']['output']>;
   logotypeUrl?: Maybe<Scalars['String']['output']>;
   modifiedAt: Scalars['DateTime']['output'];
   name: Scalars['String']['output'];
@@ -27905,6 +28068,9 @@ export type ProjectInput = {
   customerId: Scalars['UUID']['input'];
   customerOtherDesc?: InputMaybe<Scalars['String']['input']>;
   description: Scalars['String']['input'];
+  fileName?: InputMaybe<Scalars['String']['input']>;
+  fileURL?: InputMaybe<Scalars['String']['input']>;
+  legalName?: InputMaybe<Scalars['String']['input']>;
   logotypeUrl?: InputMaybe<Scalars['String']['input']>;
   name: Scalars['String']['input'];
   parentId?: InputMaybe<Scalars['UUID']['input']>;
@@ -51242,6 +51408,14 @@ export type TrajectoryQueriesGetTrajectoryTemplateByIdArgs = {
   trajectoryTemplateId: Scalars['ID']['input'];
 };
 
+export type TrajectorySimpleInfo = {
+  __typename?: 'TrajectorySimpleInfo';
+  /** Идентификатор (trajectory_templates.trajectory_template_id) */
+  trajectoryTemplateId: Scalars['ID']['output'];
+  /** Название шаблона траектории */
+  trajectoryTemplateName: Scalars['String']['output'];
+};
+
 /** Шаблон траектории Bootcamp */
 export type TrajectoryTemplate = {
   __typename?: 'TrajectoryTemplate';
@@ -51408,6 +51582,12 @@ export type TrajectoryTemplateTypeModel = {
   trajectoryTypeId?: Maybe<Scalars['ID']['output']>;
   /** Наименование типа шаблона траектории */
   trajectoryTypeName?: Maybe<Scalars['String']['output']>;
+};
+
+export type TrajectoryWithUsedModels = {
+  __typename?: 'TrajectoryWithUsedModels';
+  trajectory?: Maybe<TrajectorySimpleInfo>;
+  usedModules?: Maybe<Array<Maybe<ModuleInfo>>>;
 };
 
 /** Параметры перевода класса/классов из одного учебного года в другой. Переводится один класс в другой (1 -> 1 - класс в класс). Или несколько классов переводится другой класс (М -> 1) */
@@ -54670,10 +54850,14 @@ export type WidgetFillingGap = {
   content: Scalars['String']['output'];
   /** правильные ответы */
   correctAnswers: Array<WidgetFillingGapAnswerPair>;
+  /** Комментарий к правильному ответу */
+  correctHint?: Maybe<Scalars['String']['output']>;
   /** Пояснение к вопросу */
   description: Scalars['String']['output'];
   /** Картинка к пояснению */
   imgUrl: Scalars['String']['output'];
+  /** Комментарий к неверному ответу */
+  incorrectHint?: Maybe<Scalars['String']['output']>;
   /** Вопрос */
   title: Scalars['String']['output'];
 };
@@ -54756,10 +54940,14 @@ export type WidgetFillingGapInput = {
   content: Scalars['String']['input'];
   /** пропуски */
   correctAnswers: Array<WidgetFillingGapAnswerPairInput>;
+  /** Комментарий к правильному ответу */
+  correctHint?: InputMaybe<Scalars['String']['input']>;
   /** Пояснение к вопросу */
   description: Scalars['String']['input'];
   /** Картинка к пояснению */
   imgUrl: Scalars['String']['input'];
+  /** Комментарий к неверному ответу */
+  incorrectHint?: InputMaybe<Scalars['String']['input']>;
   /** Вопрос */
   title: Scalars['String']['input'];
 };
@@ -54899,10 +55087,14 @@ export type WidgetInput = {
 
 export type WidgetLineConnector = {
   __typename?: 'WidgetLineConnector';
+  /** Комментарий к правильному ответу */
+  correctHint?: Maybe<Scalars['String']['output']>;
   /** Пояснение к вопросу */
   description: Scalars['String']['output'];
   /** Картинка к пояснению */
   imgUrl: Scalars['String']['output'];
+  /** Комментарий к неверному ответу */
+  incorrectHint?: Maybe<Scalars['String']['output']>;
   /** левые карты */
   leftCards: Array<WidgetLineConnectorCard>;
   /** правые карты */
@@ -54935,10 +55127,14 @@ export type WidgetLineConnectorCardInput = {
 };
 
 export type WidgetLineConnectorInput = {
+  /** Комментарий к правильному ответу */
+  correctHint?: InputMaybe<Scalars['String']['input']>;
   /** Пояснение к вопросу */
   description: Scalars['String']['input'];
   /** Картинка к пояснению */
   imgUrl: Scalars['String']['input'];
+  /** Комментарий к неверному ответу */
+  incorrectHint?: InputMaybe<Scalars['String']['input']>;
   /** левые карты */
   leftCards: Array<WidgetLineConnectorCardInput>;
   /** правые карты */
@@ -55068,12 +55264,16 @@ export type WidgetSimpleAnswer = {
   caseSensitive: Scalars['Boolean']['output'];
   /** Правильные ответы */
   correctAnswers: Array<Scalars['String']['output']>;
+  /** Комментарий к правильному ответу */
+  correctHint?: Maybe<Scalars['String']['output']>;
   /** Значение поля по умолчанию */
   defaultValue?: Maybe<Scalars['String']['output']>;
   /** Пояснение к вопросу */
   description: Scalars['String']['output'];
   /** Ссылка на изображение к пояснению */
   imgUrl: Scalars['String']['output'];
+  /** Комментарий к неверному ответу */
+  incorrectHint?: Maybe<Scalars['String']['output']>;
   /** Текст в поле */
   placeholder?: Maybe<Scalars['String']['output']>;
   /** Вопрос */
@@ -55085,12 +55285,16 @@ export type WidgetSimpleAnswerInput = {
   caseSensitive: Scalars['Boolean']['input'];
   /** Правильные ответы */
   correctAnswers: Array<Scalars['String']['input']>;
+  /** Комментарий к правильному ответу */
+  correctHint?: InputMaybe<Scalars['String']['input']>;
   /** Значение поля по умолчанию */
   defaultValue?: InputMaybe<Scalars['String']['input']>;
   /** Пояснение к вопросу */
   description: Scalars['String']['input'];
   /** Ссылка на изображение к пояснению */
   imgUrl: Scalars['String']['input'];
+  /** Комментарий к неверному ответу */
+  incorrectHint?: InputMaybe<Scalars['String']['input']>;
   /** Текст в поле */
   placeholder?: InputMaybe<Scalars['String']['input']>;
   /** Вопрос */
@@ -55101,12 +55305,16 @@ export type WidgetSortable = {
   __typename?: 'WidgetSortable';
   /** Карточки для раскладывания в группы */
   cards: Array<WidgetSortableCard>;
+  /** Комментарий к правильному ответу */
+  correctHint?: Maybe<Scalars['String']['output']>;
   /** Пояснение к вопросу */
   description: Scalars['String']['output'];
   /** Набор групп карточек */
   groups: Array<WidgetSortableCardGroup>;
   /** Картинка к пояснению */
   imgUrl: Scalars['String']['output'];
+  /** Комментарий к неверному ответу */
+  incorrectHint?: Maybe<Scalars['String']['output']>;
   /** Учитывать ли порядок карточек в группах */
   orderSensitive: Scalars['Boolean']['output'];
   /** Вопрос */
@@ -55162,12 +55370,16 @@ export type WidgetSortableCardInput = {
 export type WidgetSortableInput = {
   /** Карточки для раскладывания в группы */
   cards: Array<WidgetSortableCardInput>;
+  /** Комментарий к правильному ответу */
+  correctHint?: InputMaybe<Scalars['String']['input']>;
   /** Пояснение к вопросу */
   description: Scalars['String']['input'];
   /** Набор групп карточек */
   groups: Array<WidgetSortableCardGroupInput>;
   /** Картинка к пояснению */
   imgUrl: Scalars['String']['input'];
+  /** Комментарий к неверному ответу */
+  incorrectHint?: InputMaybe<Scalars['String']['input']>;
   /** Учитывать ли порядок карточек в группах */
   orderSensitive: Scalars['Boolean']['input'];
   /** Вопрос */
@@ -55200,6 +55412,8 @@ export type WidgetTestChoice = {
   choiceId?: Maybe<Scalars['ID']['output']>;
   /** правильный/неправильный */
   correct: Scalars['Boolean']['output'];
+  /** Комментарий к варианту ответа */
+  hint?: Maybe<Scalars['String']['output']>;
   /** Ссылка на картинку */
   imgUrl: Scalars['String']['output'];
   /** Оригинальный индекс для локаторов e2e (ответы могут перемешиваться) */
@@ -55215,6 +55429,8 @@ export type WidgetTestChoiceInput = {
   choiceId?: InputMaybe<Scalars['ID']['input']>;
   /** правильный/неправильный */
   correct: Scalars['Boolean']['input'];
+  /** Комментарий к варианту ответа */
+  hint?: InputMaybe<Scalars['String']['input']>;
   /** Ссылка на картинку */
   imgUrl: Scalars['String']['input'];
   /** Оригинальный индекс для локаторов e2e (ответы могут перемешиваться) */
