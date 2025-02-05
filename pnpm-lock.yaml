@@ -31,8 +31,8 @@ importers:
         specifier: ^6.2.0
         version: 6.2.0(graphql-request@6.1.0(graphql@16.10.0))(graphql-tag@2.12.6(graphql@16.10.0))(graphql@16.10.0)
       '@s21toolkit/introspector':
-        specifier: ^1.0.1
-        version: 1.0.1
+        specifier: ^1.1.0
+        version: 1.1.0
       '@s21toolkit/shared':
         specifier: ^1.3.3
         version: 1.4.3
@@ -956,8 +956,8 @@ packages:
     resolution: {integrity: sha512-N4mytvN8FRnRRd1SN3MVC5tCdFFYDR5e13uEtX5gOxy/0Fnm3X+pdZCjmMbKTx8z6UNekJAmsy8OKaj9JMtU1g==}
     engines: {node: '>=20.0.0'}
 
-  '@s21toolkit/introspector@1.0.1':
-    resolution: {integrity: sha512-GF7rbLgzL/4SpP2ha6hDmIWYa/NtmW2dxH7x2RqJX/FgnEa5hy2oYgjWT8Fh3uJaf6haojnUGYWUHerAC7H4cA==}
+  '@s21toolkit/introspector@1.1.0':
+    resolution: {integrity: sha512-gglGHF6sCUjRIvf4ghsAmjQXUG0zeqGFZdNTef+cUsC4Pbd2DZM3Rq6epgot+CWELNHppfkasN2O217vcxO+mw==}
     engines: {node: '>=20.0.0'}
     hasBin: true
 
@@ -3578,7 +3578,7 @@ snapshots:
     dependencies:
       uuid: 9.0.1
 
-  '@s21toolkit/introspector@1.0.1':
+  '@s21toolkit/introspector@1.1.0':
     dependencies:
       '@s21toolkit/auth': 1.1.0
       acorn: 8.14.0
