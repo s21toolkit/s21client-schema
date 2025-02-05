@@ -9,14 +9,14 @@ const pkg = JSON.parse(
 )
 
 const currentProductVersion = process.env.VERSION
-if (!currentProductVersion) throw new Error('No product version specified')
+if (!currentProductVersion) throw new Error("No product version specified")
 
-const [version, buildVersion] = pkg.version.split('+')
-if (!version || !buildVersion) throw new Error('Version parsing failed')
+const [version, buildVersion] = pkg.version.split("+")
+if (!version || !buildVersion) throw new Error("Version parsing failed")
 
 const productVersion = version.slice(0, version.lastIndexOf(buildVersion))
 
-let buildNumber = parseInt(buildVersion, 10) + 1
+let buildNumber = Number.parseInt(buildVersion, 10) + 1
 if (productVersion !== currentProductVersion) {
 	buildNumber = 1
 }
