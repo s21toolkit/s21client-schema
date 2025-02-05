@@ -15,7 +15,7 @@
     "build:sdk": "graphql-codegen --config codegen.ts",
     "build": "pnpm build:schema && pnpm build:sdk && pnpm lint && pnpm build:tsup",
     "postversion": "git push && git push --tags",
-    "release": "npm version -m 'chore(release): %s' --"
+    "release": "npm version --allow-same-version -m 'chore(release): %s' --"
   },
   "license": "MIT",
   "files": [

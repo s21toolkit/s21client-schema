@@ -31,14 +31,16 @@ jobs:
           cache: pnpm
           registry-url: 'https://registry.npmjs.org/'
 
-      - env:
+      - name: install & build
+        env:
           S21_USERNAME: ${{ secrets.S21_USERNAME }}
           S21_PASSWORD: ${{ secrets.S21_PASSWORD }}
         run: |
           pnpm install --frozen-lockfile
           pnpm build
 
-      - id: diff
+      - name: Run diff
+        id: diff
         run: |
           if [ "$(git add --all --dry-run ./src | head -1 | wc -l)" -eq 1 ]; then
             echo "changed=true" >> $GITHUB_OUTPUT;
@@ -48,7 +50,16 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT;
           fi
 
-      - if: steps.diff.outputs.changed == 'true'
+      - name: Try to unpublish tag on manual update
+        if: steps.diff.outputs.changed == 'true' && github.event_name == 'workflow_dispatch'
+        env:
+          VERSION: ${{ steps.diff.outputs.version }}
+        run: |
+          git push origin --delete v$VERSION
+        continue-on-error: true
+
+      - name: Release tag
+        if: steps.diff.outputs.changed == 'true'
         env:
           VERSION: ${{ steps.diff.outputs.version }}
           VERSION_FULL: ${{ steps.diff.outputs.version_full }}
@@ -61,7 +72,16 @@ jobs:
 
           pnpm release "$VERSION"
 
-      - if: steps.diff.outputs.changed == 'true'
+      - name: Try to unpublish version on manual update
+        if: steps.diff.outputs.changed == 'true' && github.event_name == 'workflow_dispatch'
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ steps.diff.outputs.version }}
+        run: pnpm unpublish `jq -r .name package.json`@$VERSION
+        continue-on-error: true
+
+      - name: Release npm
+        if: steps.diff.outputs.changed == 'true'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           S21_USERNAME: ${{ secrets.S21_USERNAME }}
