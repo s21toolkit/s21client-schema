@@ -1,7 +1,7 @@
 {
   "name": "@s21toolkit/client-schema",
   "description": "New s21toolkit package.",
-  "version": "76.2.0",
+  "version": "76.2.0+0",
   "type": "module",
   "private": false,
   "scripts": {
@@ -15,7 +15,7 @@
     "build:sdk": "graphql-codegen --config codegen.ts",
     "build": "pnpm build:schema && pnpm build:sdk && pnpm lint && pnpm build:tsup",
     "postversion": "git push && git push --tags",
-    "release": "npm version --allow-same-version -m 'chore(release): %s' --"
+    "release": "npm version -m 'chore(release): %s' --"
   },
   "license": "MIT",
   "files": [
@@ -38,6 +38,7 @@
     "@s21toolkit/introspector": "^1.1.0",
     "@s21toolkit/shared": "^1.3.3",
     "@total-typescript/ts-reset": "^0.5.1",
+    "@types/node": "^22.13.1",
     "graphql-request": "^6.1.0",
     "tsup": "^8.0.2",
     "typescript": "^5.4.5"

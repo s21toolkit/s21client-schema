@@ -14,9 +14,6 @@ jobs:
   try-update-sdk:
     runs-on: ubuntu-latest
 
-    env:
-      NODE_AUTH_TOKEN: ${{secrets.NPM_TOKEN}}
-
     steps:
       - uses: actions/checkout@v4
 
@@ -50,19 +47,12 @@ jobs:
             echo "changed=false" >> $GITHUB_OUTPUT;
           fi
 
-      - name: Try to unpublish tag on manual update
-        if: steps.diff.outputs.changed == 'true' && github.event_name == 'workflow_dispatch'
-        env:
-          VERSION: ${{ steps.diff.outputs.version }}
-        run: |
-          git push origin --delete v$VERSION
-        continue-on-error: true
-
       - name: Release tag
         if: steps.diff.outputs.changed == 'true'
         env:
           VERSION: ${{ steps.diff.outputs.version }}
           VERSION_FULL: ${{ steps.diff.outputs.version_full }}
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
         run: |
           git config user.name s21toolkit
           git config user.email s21toolkit@github.com
@@ -70,15 +60,7 @@ jobs:
           git add ./src
           git commit -m "feat(schema): $VERSION_FULL"
 
-          pnpm release "$VERSION"
-
-      - name: Try to unpublish version on manual update
-        if: steps.diff.outputs.changed == 'true' && github.event_name == 'workflow_dispatch'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
-          VERSION: ${{ steps.diff.outputs.version }}
-        run: pnpm unpublish `jq -r .name package.json`@$VERSION
-        continue-on-error: true
+          pnpm release `node increment.mjs`
 
       - name: Release npm
         if: steps.diff.outputs.changed == 'true'

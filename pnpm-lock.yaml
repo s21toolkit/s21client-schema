@@ -39,6 +39,9 @@ importers:
       '@total-typescript/ts-reset':
         specifier: ^0.5.1
         version: 0.5.1
+      '@types/node':
+        specifier: ^22.13.1
+        version: 22.13.1
       graphql-request:
         specifier: ^6.1.0
         version: 6.1.0(graphql@16.10.0)
