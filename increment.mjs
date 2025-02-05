@@ -21,4 +21,4 @@ if (productVersion !== currentProductVersion) {
 	buildNumber = 1
 }
 
-console.log(`${process.env.VERSION}${buildNumber}+${buildNumber}`)
+console.log(`${currentProductVersion}${buildNumber}+${buildNumber}`)
