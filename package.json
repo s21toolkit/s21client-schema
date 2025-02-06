@@ -1,7 +1,7 @@
 {
   "name": "@s21toolkit/client-schema",
   "description": "New s21toolkit package.",
-  "version": "76.2.1",
+  "version": "76.2.01+1",
   "type": "module",
   "private": false,
   "scripts": {
@@ -13,9 +13,7 @@
     "build:tsup": "tsup",
     "build:schema": "s21i @ $(s21i auth ${S21_USERNAME} ${S21_PASSWORD}) -o schema.gql",
     "build:sdk": "graphql-codegen --config codegen.ts",
-    "build": "pnpm build:schema && pnpm build:sdk && pnpm lint && pnpm build:tsup",
-    "postversion": "git push && git push --tags",
-    "release": "npm version -m 'chore(release): %s' --"
+    "build": "pnpm build:schema && pnpm build:sdk && pnpm lint && pnpm build:tsup"
   },
   "license": "MIT",
   "files": [

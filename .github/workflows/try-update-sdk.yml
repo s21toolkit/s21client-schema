@@ -60,7 +60,12 @@ jobs:
           git add ./src
           git commit -m "feat(schema): $VERSION_FULL"
 
-          pnpm release `node increment.mjs`
+          version=`node increment.mjs`
+
+          git add package.json
+          git commit -m "chore(release): $version"
+          git tag "v$version"
+          git push && git push --tags
 
       - name: Release npm
         if: steps.diff.outputs.changed == 'true'
