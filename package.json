@@ -1,7 +1,7 @@
 {
   "name": "@s21toolkit/client-schema",
   "description": "New s21toolkit package.",
-  "version": "76.2.01+1",
+  "version": "76.2.0-build.1",
   "type": "module",
   "private": false,
   "scripts": {
