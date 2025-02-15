@@ -7,7 +7,7 @@ permissions:
   contents: write
 
 jobs:
-  try-update-sdk:
+  force-update-sdk:
     runs-on: ubuntu-latest
 
     steps:
