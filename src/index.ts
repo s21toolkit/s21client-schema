@@ -2,6 +2,7 @@
 import type {} from "graphql"
 
 export * from "./sdk"
+export * from "./version"
 
 import { type Sdk, getSdk } from "./sdk"
 
