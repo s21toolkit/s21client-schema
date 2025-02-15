@@ -59,7 +59,7 @@ jobs:
 
           CURRENT_VERSION=$(node -p 'require("./package.json").version.split("-").at(0)')
 
-          if [ $CURRENT_VERSION = $VERSION ]; then
+          if [ "$CURRENT_VERSION" = "$VERSION" ]; then
             pnpm version prerelease --no-git-tag-version
           else
             pnpm version "$VERSION-build.0" --no-git-tag-version
