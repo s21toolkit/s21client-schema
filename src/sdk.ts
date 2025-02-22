@@ -38603,6 +38603,8 @@ export type StudentProgressFilterBtcInputModelV2 = {
   stageIds: Array<Scalars['ID']['input']>;
   /** Город ученика */
   studentCity?: InputMaybe<Scalars['String']['input']>;
+  /** Идентификаторы предметов */
+  subjectIds: Array<Scalars['ID']['input']>;
   /** Идентификаторы пользоваталей */
   userIds: Array<Scalars['ID']['input']>;
 };
