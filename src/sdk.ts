@@ -285,6 +285,7 @@ export type AcademicYearSubjects = {
 export type AccGigaChatMessageInput = {
   /** текст сообщения */
   content: Scalars['String']['input'];
+  fileId?: InputMaybe<Scalars['String']['input']>;
   role?: InputMaybe<GigaChatRoleEnum>;
 };
 
@@ -1016,8 +1017,12 @@ export type AcceleratorQueries = {
   getAccAgreementLink: Scalars['String']['output'];
   /** Информация о пользователе Акселератора */
   getAccCurrentUserInfo: AccUserInfoModel;
+  /** отправить запрос в GigaChat и получить ответ с использованием файла */
+  getAccGigaChatPresentation: Array<AccGigaChatResponse>;
   /** отправить запрос в GigaChat и получить ответ */
   getAccGigaChatResponse: Array<AccGigaChatResponse>;
+  /** получить access token для взаимодействия с GigaChat */
+  getAccGigaChatToken: Scalars['String']['output'];
   /** Модуль ученика */
   getAccModuleById?: Maybe<StudentModule>;
   /** Получение заметок за переданный день */
@@ -1343,6 +1348,12 @@ export type AcceleratorQueriesFindAccCalendarEventsByFilterArgs = {
 export type AcceleratorQueriesFindCalendarEventsByFilterArgs = {
   filter: CalendarEventFilterInput;
   page?: InputMaybe<PagingInput>;
+};
+
+
+export type AcceleratorQueriesGetAccGigaChatPresentationArgs = {
+  fileName: Scalars['String']['input'];
+  filePath: Scalars['String']['input'];
 };
 
 
@@ -2847,6 +2858,25 @@ export type AssignVariantToStudentRequest = {
   studentInSubgroupId: Scalars['ID']['input'];
 };
 
+/** Назначенная на студента траектория */
+export type AssignedTrajectoryModel = {
+  __typename?: 'AssignedTrajectoryModel';
+  /** Фактическая дата окончания */
+  factEndDate?: Maybe<Scalars['Date']['output']>;
+  /** признак основной траектории */
+  isPrimary: Scalars['Boolean']['output'];
+  /** Плановая дата окончания обучения по траектории */
+  planEndDate?: Maybe<Scalars['Date']['output']>;
+  /** Плановая дата начала обучения по траектории */
+  planStartDate?: Maybe<Scalars['Date']['output']>;
+  /** идентификатор траектории */
+  trajectoryId: Scalars['ID']['output'];
+  /** название траектории */
+  trajectoryName: Scalars['String']['output'];
+  /** краткое название траектории */
+  trajectorySlug: Scalars['String']['output'];
+};
+
 /** Механика назначения (учитель/ученик, система/ученик, etc.) */
 export type AssignmentType = {
   __typename?: 'AssignmentType';
@@ -4074,6 +4104,17 @@ export type AvailablePublicationActions = {
   isUnPublishAvailable: Scalars['Boolean']['output'];
 };
 
+/** Результат проверки доступных для публикации/снятия с публикации локальных курсов */
+export type AvailablePublicationCourses = {
+  __typename?: 'AvailablePublicationCourses';
+  /** Признак доступности всех указанных курсов для публикации/снятия с публикации */
+  allCoursesAvailable: Scalars['Boolean']['output'];
+  /** Список идентификаторов уже опубликованных курсов */
+  publishedCourseIds: Array<Scalars['ID']['output']>;
+  /** Список идентификаторов неопубликованных курсов */
+  unpublishedCourseIds: Array<Scalars['ID']['output']>;
+};
+
 /** Доступные области видимости и пресеты */
 export type AvailableScopes = {
   __typename?: 'AvailableScopes';
@@ -5260,7 +5301,7 @@ export type BtcTagInputModel = {
 export type BtcTagModel = {
   __typename?: 'BtcTagModel';
   /** Дата и время создания тега */
-  createTs?: Maybe<Scalars['DateTime']['output']>;
+  createTs: Scalars['DateTime']['output'];
   /** Идентификатор пользователя, который создал тег */
   createdBy: Scalars['UUID']['output'];
   /** Флаг, обозначающий, включен или выключен данный тег */
@@ -9634,12 +9675,19 @@ export type CalendarEventQueriesGetParticipantGroupIdsArgs = {
 
 export type CalendarEventS21Queries = {
   __typename?: 'CalendarEventS21Queries';
+  /** S21. Запрос даты начала события для перехода на нужную неделю календаря из нотификации */
+  getEventSlotDateTime: Scalars['DateTime']['output'];
   /** S21. Запрос событий для агенды студента */
   getMyAgendaEvents: Array<AgendaEvent>;
   /** S21. Запрос событий студента для выбранного диапазона */
   getMyCalendarEvents: Array<CalendarEvent>;
   /** S21. Запрос предстоящих событий студента, доступных для регистрации */
   getUpcomingEventsForRegistration: Array<Maybe<CalendarEvent>>;
+};
+
+
+export type CalendarEventS21QueriesGetEventSlotDateTimeArgs = {
+  bookingId: Scalars['ID']['input'];
 };
 
 
@@ -10298,8 +10346,6 @@ export type Checklist = {
   __typename?: 'Checklist';
   /** Список доступных языков чеклиста */
   availableLanguages?: Maybe<Array<LanguageCodeType>>;
-  /** Описание чек-листа */
-  comment?: Maybe<Scalars['String']['output']>;
   /** Дата создания */
   createTime: Scalars['DateTime']['output'];
   /** Инструкция чек-листа */
@@ -10309,11 +10355,7 @@ export type Checklist = {
   /** Вступление чек-листа */
   introduction?: Maybe<Scalars['String']['output']>;
   /** Язык */
-  language: Scalars['String']['output'];
-  /** Язык */
   languageCode: LanguageCodeType;
-  /** Название чеклиста */
-  name?: Maybe<Scalars['String']['output']>;
   /** Набор допустимых быстрых действий */
   quickActions: Array<QuickAction>;
   /** Секции чек-листа */
@@ -12824,7 +12866,10 @@ export type CourseCoverInformation = {
   signUpStartDate?: Maybe<Scalars['DateTime']['output']>;
   /** Список гибких навыков с макс. кол-вом очков за все задания этого курса */
   softSkills: Array<SoftSkillPoint>;
-  /** Кол-во команд ожидающих проверки по групповым проектам */
+  /**
+   * Кол-во команд ожидающих проверки по групповым проектам
+   * @deprecated убрано с фронта. Для курсов не имеет смысла
+   */
   teamsWaitingEvaluationCount: Scalars['Int']['output'];
   /**
    * Timeline курса, список этапов прохождения проекта со статусами и опциональными датами начала/окончания
@@ -12995,6 +13040,8 @@ export type CourseMutations = {
   rollbackS21LocalCoursesSaveProcessItem: Scalars['Boolean']['output'];
   /** Сохранение настроек выполнения для глобального курса (группы проектов) вне плана */
   saveCourseEvaluationRulesWithoutPlan: Array<EvaluationRuleGroup>;
+  /** Изменение дат локальных курсов */
+  saveDatesLocalCoursesAndGoals: Scalars['Boolean']['output'];
   /** Сохранение настроек условий фильтрации для модуля (проекта, цели) в локальном курсе */
   saveEvaluationRulesForLocalCourseGoal: Array<EvaluationRuleGroup>;
   /** Сохранение/обновление локального курса */
@@ -13067,6 +13114,12 @@ export type CourseMutationsSaveCourseEvaluationRulesWithoutPlanArgs = {
 };
 
 
+export type CourseMutationsSaveDatesLocalCoursesAndGoalsArgs = {
+  localCoursesDates: Array<LocalCourseDatesInput>;
+  updateCourseGoals: Scalars['Boolean']['input'];
+};
+
+
 export type CourseMutationsSaveEvaluationRulesForLocalCourseGoalArgs = {
   conditionType: ConditionType;
   evaluationRules: Array<EvaluationRuleGroupInput>;
@@ -13111,6 +13164,8 @@ export type CourseQueries = {
   __typename?: 'CourseQueries';
   /** Проверка групповых проектов в локальном курсе (группе проектов) */
   checkGroupProjectsInLocalCourse: Scalars['Boolean']['output'];
+  /** Проверка доступности действия публикации/снятия с публикации для всех указанных локальных курсов */
+  checkPublicationStatusForLocalCourses: AvailablePublicationCourses;
   /** Критериальный поиск локальных курсов */
   findLocalCoursesByCriteria: LocalCourseSearchResult;
   /** Получить информацию о попытке прохождения курса */
@@ -13175,6 +13230,13 @@ export type CourseQueries = {
 
 export type CourseQueriesCheckGroupProjectsInLocalCourseArgs = {
   localCourse: LocalCourseInput;
+};
+
+
+export type CourseQueriesCheckPublicationStatusForLocalCoursesArgs = {
+  criteria?: InputMaybe<LocalCourseSearchCriteriaInput>;
+  isPublished: Scalars['Boolean']['input'];
+  localCourseIds?: InputMaybe<Array<Scalars['ID']['input']>>;
 };
 
 
@@ -15886,6 +15948,8 @@ export type EventMutations = {
   createActivityEvent: ActivityEvent;
   /** Участник - предложить мероприятие */
   createParticipantEvent: ActivityEvent;
+  /** Участник - отказаться от фидбека на мероприятие */
+  rejectCalendarEventFeedback: Scalars['Boolean']['output'];
   /** БА - отклонить заявку на мероприятие участника */
   rejectParticipantEvent: ActivityEvent;
   /** БА - Обновление мероприятия в школе */
@@ -15915,6 +15979,11 @@ export type EventMutationsCreateActivityEventArgs = {
 
 export type EventMutationsCreateParticipantEventArgs = {
   input: ActivityEventByStudentInputModel;
+};
+
+
+export type EventMutationsRejectCalendarEventFeedbackArgs = {
+  eventId: Scalars['ID']['input'];
 };
 
 
@@ -16091,6 +16160,15 @@ export type Exam = {
   stopRegisterDate?: Maybe<Scalars['DateTime']['output']>;
   /** Дата обновления экзамена */
   updateDate: Scalars['DateTime']['output'];
+};
+
+/** Информация по курсу, в котором находится экзамен, проходимый студентом */
+export type ExamCourseInfo = {
+  __typename?: 'ExamCourseInfo';
+  /** Выполняется ли данный экзамен в рамках курса */
+  isExamInCourse?: Maybe<Scalars['Boolean']['output']>;
+  /** Находится ли экзамен в оцениваемом курсе */
+  isExamInGradedCourse?: Maybe<Scalars['Boolean']['output']>;
 };
 
 /** Причина недопуска студента в экзамен */
@@ -16448,6 +16526,8 @@ export type ExamTaskWithStatuses = {
   levelsStatuses: Array<ExamTasksStatusesByLevel>;
   /** Текущее время сервера */
   nowDateTime: Scalars['DateTime']['output'];
+  /** Идентификатор ответа студента */
+  studentAnswerId?: Maybe<Scalars['ID']['output']>;
   /** Контент задания с правильными подставленными ссылками на изображения */
   taskContent?: Maybe<Task>;
   /** Ссылка на проект с заданием в гитлабе */
@@ -16514,7 +16594,7 @@ export type ExamTestStatusInfo = {
   examEventId: Scalars['Int']['output'];
   /** Идентификаор модуля с тестом */
   goalId: Scalars['Int']['output'];
-  /** Выолняется ли данный тест в рамках курса */
+  /** Выполняется ли данный тест в рамках курса */
   isExamInCourse?: Maybe<Scalars['Boolean']['output']>;
   /** Текущее время сервера */
   nowDateTime: Scalars['DateTime']['output'];
@@ -22513,6 +22593,17 @@ export type LocalCourseCompareGlobalCourseResult = {
   moduleEquals: Scalars['Boolean']['output'];
 };
 
+export type LocalCourseDatesInput = {
+  /** Дата/время окончания регистрации на курс */
+  endRegisterDate?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Идентификатор локального курса */
+  localCourseId?: InputMaybe<Scalars['ID']['input']>;
+  /** Дата/время начала плана */
+  startDate?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Дата/время начала регистрации на курс */
+  startRegisterDate?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
 /** Цели локального курса */
 export type LocalCourseGoal = {
   __typename?: 'LocalCourseGoal';
@@ -24267,8 +24358,8 @@ export type ModulesProgressStudentDetails = {
 };
 
 export type ModulesReportFilter = {
-  beginDate: Scalars['Date']['input'];
-  endDate: Scalars['Date']['input'];
+  beginDate?: InputMaybe<Scalars['Date']['input']>;
+  endDate?: InputMaybe<Scalars['Date']['input']>;
   noNameRegion: Scalars['Boolean']['input'];
   noNameTerbank: Scalars['Boolean']['input'];
   regions?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
@@ -25073,6 +25164,32 @@ export type P2pInstance = {
   /** Логин проверяющего студента */
   reviewerLogin: Scalars['String']['output'];
 };
+
+/** Заявка на п2п проверку */
+export type P2pRequest = {
+  __typename?: 'P2pRequest';
+  /** Дата окончания */
+  endTime: Scalars['DateTime']['output'];
+  /** ID проекта */
+  goalId: Scalars['ID']['output'];
+  /** Наименование проекта */
+  goalName: Scalars['String']['output'];
+  /** Признак онлайн формата */
+  isOnline: Scalars['Boolean']['output'];
+  /** ID заявки */
+  p2pRequestId: Scalars['ID']['output'];
+  /** Дата начала */
+  startTime: Scalars['DateTime']['output'];
+  /** ID ответа студента */
+  studentAnswerId: Scalars['ID']['output'];
+};
+
+/** S21. Статус о проверке проекта */
+export enum P2pRequirementStatus {
+  NeedStaffCheck = 'NEED_STAFF_CHECK',
+  NeedStudentCheck = 'NEED_STUDENT_CHECK',
+  NoNeedCheck = 'NO_NEED_CHECK'
+}
 
 export type PagingInput = {
   limit: Scalars['Int']['input'];
@@ -28159,15 +28276,6 @@ export enum ProjectEvaluationStatus {
   Success = 'SUCCESS'
 }
 
-/** Информация о проверках по проекту */
-export type ProjectEvaluationsInfo = {
-  __typename?: 'ProjectEvaluationsInfo';
-  /** Информация об auto проверках */
-  auto: AutoEvaluationInfo;
-  /** Информация о p2p проверках */
-  p2p: Array<P2PEvaluationInfo>;
-};
-
 export type ProjectFile = {
   __typename?: 'ProjectFile';
   createDataTime: Scalars['DateTime']['output'];
@@ -28285,6 +28393,8 @@ export type ProjectPage = {
 /** Информация о проверках проекта */
 export type ProjectReviewsInfo = {
   __typename?: 'ProjectReviewsInfo';
+  /** Статус необходимости p2p проверки */
+  p2pRequirementStatus: P2pRequirementStatus;
   /** Количество запланированных проверок к БА */
   relevantReviewByInspectionStaffCount: Scalars['Int']['output'];
   /** Количество запланированных проверок к студенту */
@@ -29426,6 +29536,8 @@ export type ResumeModel = {
   inviteCount: Scalars['Int']['output'];
   isFavoriteByCurrentTeam: Scalars['Boolean']['output'];
   isInvitedByCurrentTeam: Scalars['Boolean']['output'];
+  projectId?: Maybe<Scalars['UUID']['output']>;
+  projectName?: Maybe<Scalars['String']['output']>;
   projectRoles: Array<Maybe<ProjectRoleFromDirectory>>;
   regionId: Scalars['UUID']['output'];
   regionName: Scalars['String']['output'];
@@ -29813,6 +29925,8 @@ export type S21ExamQueries = {
   getCurrentExamTask: ExamTaskWithStatuses;
   /** S21. Получение статуса проверки автотестов на отправленное экзаменационное задание */
   getExamAnswerStatus?: Maybe<TaskStatusEnum>;
+  /** S21. Получить информацию по курсу, в котором находится экзамен, проходимый студентом */
+  getExamCourseInfo: ExamCourseInfo;
   /** S21. Получение мета информации для подготовки студента к прохождению экзамена */
   getExamPassingUser: ExamPassingUser;
   /** S21. Получение статуса текущего экзамена студента (если вернул null - текущий или следующий экзамен не найден) */
@@ -29841,6 +29955,11 @@ export type S21ExamQueriesGetExamAnswerStatusArgs = {
   examId: Scalars['ID']['input'];
   goalId: Scalars['ID']['input'];
   taskId: Scalars['ID']['input'];
+};
+
+
+export type S21ExamQueriesGetExamCourseInfoArgs = {
+  examId: Scalars['ID']['input'];
 };
 
 
@@ -29985,6 +30104,7 @@ export enum S21NotificationEnum {
   S21ApproveParticipantEvent = 'S21_APPROVE_PARTICIPANT_EVENT',
   S21ApproveParticipantEventWithChanges = 'S21_APPROVE_PARTICIPANT_EVENT_WITH_CHANGES',
   S21CalcCourseFinalPointUi = 'S21_CALC_COURSE_FINAL_POINT_UI',
+  S21CalcInternshipFinalPointUi = 'S21_CALC_INTERNSHIP_FINAL_POINT_UI',
   S21CalcProjectFinalPoint = 'S21_CALC_PROJECT_FINAL_POINT',
   S21CancelCheckoutForVerifiable = 'S21_CANCEL_CHECKOUT_FOR_VERIFIABLE',
   S21CancelCheckoutForVerifier = 'S21_CANCEL_CHECKOUT_FOR_VERIFIER',
@@ -30009,6 +30129,10 @@ export enum S21NotificationEnum {
   S21GroupProjectTeamExitMember = 'S21_GROUP_PROJECT_TEAM_EXIT_MEMBER',
   S21InviteToTeam = 'S21_INVITE_TO_TEAM',
   S21LevelUp = 'S21_LEVEL_UP',
+  S21P2PRequestAllSlotCanceled = 'S21_P2P_REQUEST_ALL_SLOT_CANCELED',
+  S21P2PRequestCompleted = 'S21_P2P_REQUEST_COMPLETED',
+  S21P2PRequestExpired = 'S21_P2P_REQUEST_EXPIRED',
+  S21P2PRequestPassedCanceled = 'S21_P2P_REQUEST_PASSED_CANCELED',
   S21PeerReviewAbsence = 'S21_PEER_REVIEW_ABSENCE',
   S21PenaltyCancelled = 'S21_PENALTY_CANCELLED',
   S21PenaltySchedule = 'S21_PENALTY_SCHEDULE',
@@ -30259,6 +30383,7 @@ export enum S21RelatedObjectEnum {
   Dashboard = 'DASHBOARD',
   Deadline = 'DEADLINE',
   Event = 'EVENT',
+  Internship = 'INTERNSHIP',
   Invitations = 'INVITATIONS',
   MyEvents = 'MY_EVENTS',
   Penalty = 'PENALTY',
@@ -31787,12 +31912,18 @@ export type School21Queries = {
    * @deprecated использовать getStudentByLogin
    */
   getStudentIdByLogin?: Maybe<Scalars['UUID']['output']>;
+  /** S21. Публичный профиль студента. Получение статусов проектов для публичного профиля */
+  getStudentProjectStatusesForPublicProfileV2: Array<Maybe<StudentItem>>;
   /** S21. Получить список всех групповых и индивидуальных проектов студента со статусами и датами получения статусов */
   getStudentProjects: Array<StudentProjectForBa>;
   /** S21. Публичный профиль студента. Получение всех проектов для публичного профиля по userId и stageGroupId */
   getStudentProjectsForPublicProfileByStageGroup: Array<Maybe<StudentItem>>;
+  /** S21. Публичный профиль студента. Получение всех проектов для публичного профиля по studentId и stageGroupId */
+  getStudentProjectsForPublicProfileV2: Array<Maybe<StudentItem>>;
   /** S21. Получить задание для студента по проекту */
   getTasksById: Array<StudentTask>;
+  /** S21. Получение данных о пользователе для конфигуратора системы */
+  getUser: User;
   /** S21. Получить список комментариев к личным заявкам участников на расформирование команды */
   getUserDisbandRequestComments: Array<UserDisbandRequestComment>;
   /** S21. Публичный профиль студента. Получение UserId по Login пользователя */
@@ -32256,6 +32387,12 @@ export type School21QueriesGetStudentIdByLoginArgs = {
 };
 
 
+export type School21QueriesGetStudentProjectStatusesForPublicProfileV2Args = {
+  projects: Array<StudentItemEntityInput>;
+  studentId: Scalars['UUID']['input'];
+};
+
+
 export type School21QueriesGetStudentProjectsArgs = {
   studentId: Scalars['UUID']['input'];
 };
@@ -32267,11 +32404,22 @@ export type School21QueriesGetStudentProjectsForPublicProfileByStageGroupArgs = 
 };
 
 
+export type School21QueriesGetStudentProjectsForPublicProfileV2Args = {
+  stageGroupId: Scalars['ID']['input'];
+  studentId: Scalars['UUID']['input'];
+};
+
+
 export type School21QueriesGetTasksByIdArgs = {
   goalId: Scalars['ID']['input'];
   language?: InputMaybe<Scalars['String']['input']>;
   localCourseId?: InputMaybe<Scalars['ID']['input']>;
   taskId: Scalars['ID']['input'];
+};
+
+
+export type School21QueriesGetUserArgs = {
+  userId: Scalars['ID']['input'];
 };
 
 
@@ -35712,6 +35860,17 @@ export enum StudentAnswerType {
   Unknown = 'UNKNOWN'
 }
 
+/** Траектории назначенные на студента */
+export type StudentAssignedTrajectoryModel = {
+  __typename?: 'StudentAssignedTrajectoryModel';
+  /** идентификатор студента */
+  studentId: Scalars['UUID']['output'];
+  /** список назначенных на студента траекторий */
+  trajectories: Array<AssignedTrajectoryModel>;
+  /** строка с перечнем траекторий разделенных запятой */
+  trajectorySlugs: Scalars['String']['output'];
+};
+
 /** Посещаемость по предметам */
 export type StudentAttendanceBySubject = {
   __typename?: 'StudentAttendanceBySubject';
@@ -35748,6 +35907,23 @@ export type StudentAttributes = {
   studentDismissInfo?: Maybe<StudentDismissInfo>;
   studentId: Scalars['ID']['output'];
   userId: Scalars['ID']['output'];
+};
+
+/** Информация о доступных модулях/задачах для пользователя (студента ВУЗа) IT Bootcamp */
+export type StudentBtcInfoAccess = {
+  __typename?: 'StudentBtcInfoAccess';
+  /** Список разрешенных идентификаторов модулей */
+  allowedModuleIds: Array<Maybe<Scalars['ID']['output']>>;
+  /** Список разрешенных идентификаторов задач */
+  allowedTaskIds: Array<Maybe<Scalars['ID']['output']>>;
+  /** Описание */
+  info?: Maybe<Scalars['String']['output']>;
+  /** Идентификатор студента */
+  studentId?: Maybe<Scalars['UUID']['output']>;
+  /** Признак необходимости использования ограничения доступа к контенту */
+  useAccessRestriction: Scalars['Boolean']['output'];
+  /** Идентификатор пользователя */
+  userId: Scalars['UUID']['output'];
 };
 
 /** Жалоба на буллинг */
@@ -36355,6 +36531,7 @@ export type StudentEventFeedback = {
   comment?: Maybe<Scalars['String']['output']>;
   createDate: Scalars['DateTime']['output'];
   id: Scalars['ID']['output'];
+  isEmpty: Scalars['Boolean']['output'];
   rating: Scalars['Int']['output'];
   user: User;
 };
@@ -36996,6 +37173,14 @@ export type StudentItem = {
   name: Scalars['String']['output'];
 };
 
+/** Источник проектов */
+export type StudentItemEntityInput = {
+  /** Идентификатор цели (если модуль, иначе null) */
+  goalId?: InputMaybe<Scalars['Int']['input']>;
+  /** Идентификатор курса (если не модуль, иначе null) */
+  localCourseId?: InputMaybe<Scalars['Int']['input']>;
+};
+
 export type StudentJournalMark = {
   __typename?: 'StudentJournalMark';
   comment?: Maybe<Scalars['String']['output']>;
@@ -37507,6 +37692,8 @@ export type StudentMutations = {
   attachTaskMessageFile: File;
   /** Отмена приглашения в команду в групповом задании с ручным формированием команд */
   cancelInvitation: StudentInvitationInfo;
+  /** S21. Отмена заявки на п2п проверку */
+  cancelP2pRequest: Scalars['Boolean']['output'];
   capitulationFromTheCourse: StudentCourseModel;
   /** изменение проверяющего (до самой проверки) */
   changeAnswerReviewer: StudentAnswer;
@@ -37527,6 +37714,8 @@ export type StudentMutations = {
   createDeadlineShiftRequest?: Maybe<DeadlineShiftRequest>;
   /** Создать новую попытку теста для уровня цели (закрывающий тест 2.0) */
   createGoalLevelTestAttempt: StudentGoalLevelTestAttempt;
+  /** S21. Создание заявки на п2п проверку */
+  createP2pRequest: P2pRequest;
   createPortfolioDocumentComment: PortfolioDocumentComment;
   createPortfolioDocumentReaction: PortfolioDocumentReaction;
   /** Создание фидбэка проверяемого по заданию, привязанного к чек-листу */
@@ -37778,6 +37967,11 @@ export type StudentMutationsCancelInvitationArgs = {
 };
 
 
+export type StudentMutationsCancelP2pRequestArgs = {
+  p2pRequestId: Scalars['ID']['input'];
+};
+
+
 export type StudentMutationsCapitulationFromTheCourseArgs = {
   localCourseId: Scalars['ID']['input'];
 };
@@ -37839,6 +38033,13 @@ export type StudentMutationsCreateDeadlineShiftRequestArgs = {
 
 export type StudentMutationsCreateGoalLevelTestAttemptArgs = {
   goalLevelTestId: Scalars['ID']['input'];
+};
+
+
+export type StudentMutationsCreateP2pRequestArgs = {
+  goalId: Scalars['ID']['input'];
+  isOnline: Scalars['Boolean']['input'];
+  startTime: Scalars['DateTime']['input'];
 };
 
 
@@ -38604,7 +38805,7 @@ export type StudentProgressFilterBtcInputModelV2 = {
   /** Город ученика */
   studentCity?: InputMaybe<Scalars['String']['input']>;
   /** Идентификаторы предметов */
-  subjectIds: Array<Scalars['ID']['input']>;
+  subjectIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** Идентификаторы пользоваталей */
   userIds: Array<Scalars['ID']['input']>;
 };
@@ -38999,6 +39200,8 @@ export type StudentQueries = {
   getCurrentGoals?: Maybe<Array<GoalDto>>;
   /** Возвращает текущий турнир. Если текущего нет, возвращает последний турнир ученика. Либо null если нет обоих */
   getCurrentOrLastTournament?: Maybe<GameTournament>;
+  /** Получение информации о доступных модулях/задачах для пользователя (студента ВУЗа) IT Bootcamp */
+  getCurrentStudentBtcInfoAccess: StudentBtcInfoAccess;
   /** Возвращает урок в контексте конкретного студента с сокращенной персональной информацией. */
   getCurrentStudentLesson: StudentLessonCompact;
   getCurrentTasks?: Maybe<Array<StudentTask>>;
@@ -39133,6 +39336,8 @@ export type StudentQueries = {
   getModules: Array<StudentModulesInSubjectContext>;
   getMotivationBlockByGoalId?: Maybe<MotivationBlock>;
   getMotivationBlockSections: Array<MotivationBlockSection>;
+  /** . S21. Запрос на получения списка открытых п2п заявок */
+  getMyActualP2pRequests: Array<P2pRequest>;
   /** S21. Запрос записей на проверку студента для выбранного диапазона */
   getMyCalendarBookings: Array<CalendarBooking>;
   /** Получить участников моей коалиции */
@@ -39192,11 +39397,7 @@ export type StudentQueries = {
   getProctoringParameters: ProctoringParameters;
   /** Получение информации о проверках по проекту */
   getProjectAttemptEvaluationsInfo: Array<ProjectAttemptEvaluationsInfo>;
-  getProjectEvaluationsInfo: ProjectEvaluationsInfo;
-  /**
-   * Получение статистики по проекту (для индивидуальных и групповых проектов)
-   * @deprecated Актуальная версия квери getProjectAttemptEvaluationsInfo_V1
-   */
+  /** Получение статистики по проекту (для индивидуальных и групповых проектов) */
   getProjectStatistics?: Maybe<ProjectStatistics>;
   /** Получение информации о команде в групповом задании */
   getProjectTeamMembers?: Maybe<ProjectTeamMembers>;
@@ -39988,6 +40189,12 @@ export type StudentQueriesGetMotivationBlockSectionsArgs = {
 };
 
 
+export type StudentQueriesGetMyActualP2pRequestsArgs = {
+  from: Scalars['DateTime']['input'];
+  to: Scalars['DateTime']['input'];
+};
+
+
 export type StudentQueriesGetMyCalendarBookingsArgs = {
   from: Scalars['DateTime']['input'];
   to: Scalars['DateTime']['input'];
@@ -40142,11 +40349,6 @@ export type StudentQueriesGetProctoringParametersArgs = {
 
 export type StudentQueriesGetProjectAttemptEvaluationsInfoArgs = {
   goalId: Scalars['ID']['input'];
-};
-
-
-export type StudentQueriesGetProjectEvaluationsInfoArgs = {
-  studentAnswerId: Scalars['ID']['input'];
 };
 
 
@@ -41151,7 +41353,8 @@ export enum StudentStateEnum {
   Blocked = 'BLOCKED',
   Expelled = 'EXPELLED',
   Frozen = 'FROZEN',
-  NotActive = 'NOT_ACTIVE'
+  NotActive = 'NOT_ACTIVE',
+  StudyCompleted = 'STUDY_COMPLETED'
 }
 
 export enum StudentStatus {
@@ -41990,6 +42193,8 @@ export type StudentTrajectoryTemplateAssignmentInputModel = {
   assignmentMode: TrajectoryAssignmentMode;
   /** Признак основной траектории */
   isPrimary: Scalars['Boolean']['input'];
+  /** Плановая дата окончания обучения по траектории */
+  planEndDate?: InputMaybe<Scalars['Date']['input']>;
   /** Плановая дата начала обучения по траектории */
   planStartDate: Scalars['Date']['input'];
   /** Идентификатор класса, в котором будет применяться шаблон */
@@ -44608,6 +44813,7 @@ export type SystemAdminQueriesGetStudentsArgs = {
   filterSchools?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
   filterStageGroups?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
   filterStages?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  filterStudyCompletedStudents?: InputMaybe<Scalars['Boolean']['input']>;
   paging?: InputMaybe<PagingInput>;
   restrictDateEnd?: InputMaybe<Scalars['DateTime']['input']>;
   restrictDateStart?: InputMaybe<Scalars['DateTime']['input']>;
@@ -44627,6 +44833,7 @@ export type SystemAdminQueriesGetStudentsCountArgs = {
   filterSchools?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
   filterStageGroups?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
   filterStages?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
+  filterStudyCompletedStudents?: InputMaybe<Scalars['Boolean']['input']>;
   restrictDateEnd?: InputMaybe<Scalars['DateTime']['input']>;
   restrictDateStart?: InputMaybe<Scalars['DateTime']['input']>;
   textSearch?: InputMaybe<Scalars['String']['input']>;
@@ -51441,6 +51648,8 @@ export type TrajectoryMutations = {
   assignTrajectoryTemplateToStudent?: Maybe<Scalars['Boolean']['output']>;
   /** Изменить плановые даты начала и окончания траектории студента отталкиваясь от новой плановой даты окончания */
   changePlanDatesTrajectoryStudent?: Maybe<Scalars['Boolean']['output']>;
+  /** Изменить плановые даты начала и окончания траектории студентов */
+  changeTrajectoryPlanDatesForStudents?: Maybe<Scalars['Boolean']['output']>;
   createTrajectory: Trajectory;
   /** Сохранение маппинга между шаблонами траекторий и внешними идентификаторами профессий/ролей/подразделений */
   savePulseJobCodeMapper?: Maybe<PulseJobCodeMapper>;
@@ -51462,6 +51671,14 @@ export type TrajectoryMutationsAssignTrajectoryTemplateToStudentArgs = {
 export type TrajectoryMutationsChangePlanDatesTrajectoryStudentArgs = {
   newPlanEndDate: Scalars['Date']['input'];
   studentId: Scalars['UUID']['input'];
+  trajectory: Scalars['String']['input'];
+};
+
+
+export type TrajectoryMutationsChangeTrajectoryPlanDatesForStudentsArgs = {
+  beginPlanDate: Scalars['Date']['input'];
+  endPlanDate: Scalars['Date']['input'];
+  studentIds: Array<Scalars['UUID']['input']>;
   trajectory: Scalars['String']['input'];
 };
 
@@ -51530,6 +51747,8 @@ export type TrajectoryQueries = {
   getRecommendedTrajectoryTemplate?: Maybe<TrajectoryTemplate>;
   /** Получение рекомендованого шаблона траектории на основании данных из АС Пульс */
   getRecommendedTrajectoryTemplateV2?: Maybe<TrajectoryTemplate>;
+  /** Получение списка идентификаторов студентов с информацией по назначенным траекториям */
+  getStudentAssignedTrajectories: Array<StudentAssignedTrajectoryModel>;
   /** Получить данные для фильтров для страницы списка задач по назначению шаблонов траектории на студентов */
   getTemplateAssignmentTaskFilterData?: Maybe<TemplateAssignmentTaskFilterData>;
   getTrajectoriesByIds: Array<Trajectory>;
@@ -51579,6 +51798,7 @@ export type TrajectoryQueriesFindTrajectoryTemplatesArgs = {
   goalIds?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
   statuses?: InputMaybe<Array<InputMaybe<TrajectoryTemplateStatus>>>;
   templateName?: InputMaybe<Scalars['String']['input']>;
+  types?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
 };
 
 
@@ -51618,6 +51838,11 @@ export type TrajectoryQueriesGetRecommendedTrajectoryTemplateArgs = {
 export type TrajectoryQueriesGetRecommendedTrajectoryTemplateV2Args = {
   studentId: Scalars['ID']['input'];
   userId: Scalars['ID']['input'];
+};
+
+
+export type TrajectoryQueriesGetStudentAssignedTrajectoriesArgs = {
+  studentIds: Array<Scalars['UUID']['input']>;
 };
 
 
@@ -51669,6 +51894,10 @@ export type TrajectoryTemplate = {
   lastModifyTs?: Maybe<Scalars['DateTime']['output']>;
   /** Максимальная длительность в днях */
   maxDuration?: Maybe<Scalars['ID']['output']>;
+  /** плановая дата начала обучения по шаблону */
+  planBeginDate?: Maybe<Scalars['Date']['output']>;
+  /** плановая дата окончания обучения по шаблону */
+  planEndDate?: Maybe<Scalars['Date']['output']>;
   /** Идентификатор класса */
   stageGroupId?: Maybe<Scalars['ID']['output']>;
   /** Статус шаблона траектории */
@@ -51756,6 +51985,10 @@ export type TrajectoryTemplateInputModel = {
   lastModifyTs?: InputMaybe<Scalars['DateTime']['input']>;
   /** Максимальная длительность в днях */
   maxDuration?: InputMaybe<Scalars['ID']['input']>;
+  /** плановая дата начала обучения по шаблону */
+  planBeginDate?: InputMaybe<Scalars['Date']['input']>;
+  /** плановая дата окончания обучения по шаблону */
+  planEndDate?: InputMaybe<Scalars['Date']['input']>;
   /** Идентификатор класса */
   stageGroupId?: InputMaybe<Scalars['ID']['input']>;
   /** Статус шаблона траектории */
@@ -51960,8 +52193,8 @@ export type UniversityModel = {
 };
 
 export type UniversityModulesReportFilter = {
-  beginDate: Scalars['Date']['input'];
-  endDate: Scalars['Date']['input'];
+  beginDate?: InputMaybe<Scalars['Date']['input']>;
+  endDate?: InputMaybe<Scalars['Date']['input']>;
   noNameRegion: Scalars['Boolean']['input'];
   regions?: InputMaybe<Array<InputMaybe<Scalars['String']['input']>>>;
   stageGroupIds: Array<InputMaybe<Scalars['Int']['input']>>;
@@ -56548,6 +56781,7 @@ export const ProjectReviewsInfoFragmentDoc = gql`
   relevantReviewByStudentsCount
   reviewByInspectionStaffCount
   relevantReviewByInspectionStaffCount
+  p2pRequirementStatus
 }
     `;
 export const P2PInfoFragmentDoc = gql`
@@ -56728,6 +56962,7 @@ export const CalendarReviewBookingFragmentDoc = gql`
     end
     event {
       eventUserRole
+      eventCode
     }
     school {
       shortName
@@ -56844,6 +57079,7 @@ export const CalendarEventFragmentDoc = gql`
       id
       rating
       comment
+      isEmpty
     }
     status
     activityType
@@ -56896,6 +57132,17 @@ export const CalendarNameLessTimeslotFragmentDoc = gql`
   end
   validStartTimes
   staffSlot
+}
+    `;
+export const CalendarP2pRequestFragmentDoc = gql`
+    fragment CalendarP2pRequest on P2pRequest {
+  p2pRequestId
+  startTime
+  endTime
+  isOnline
+  goalId
+  goalName
+  studentAnswerId
 }
     `;
 export const CalendarStudentTaskAdditionalAttributesFragmentDoc = gql`
@@ -57190,6 +57437,17 @@ export const MediatekaCollectionItemFragmentFragmentDoc = gql`
   name
 }
     `;
+export const StudyProcessFileFragmentDoc = gql`
+    fragment StudyProcessFile on StudyProcessFile {
+  studyProcessFileId
+  link
+  status
+  updateDateTime
+  creatorLogin
+  fileExtension
+  fileSize
+}
+    `;
 export const PlatfSolutionInfoFragmentDoc = gql`
     fragment PlatfSolutionInfo on PlatfSolutionInfo {
   comment
@@ -57197,7 +57455,6 @@ export const PlatfSolutionInfoFragmentDoc = gql`
     studyProcessFileId
     link
     status
-    statusDetails
     updateDateTime
     creatorLogin
     fileExtension
@@ -57209,18 +57466,6 @@ export const StudentAnswerCommentFragmentDoc = gql`
     fragment StudentAnswerComment on StudentAnswerComment {
   studentAnswerId
   comment
-}
-    `;
-export const StudyProcessFileFragmentDoc = gql`
-    fragment StudyProcessFile on StudyProcessFile {
-  studyProcessFileId
-  link
-  status
-  statusDetails
-  updateDateTime
-  creatorLogin
-  fileExtension
-  fileSize
 }
     `;
 export const CoinsTransactionInfoFragmentDoc = gql`
@@ -57359,6 +57604,8 @@ export const ChecklistSolutionInfoFragmentDoc = gql`
     files {
       studyProcessFileId
       link
+      status
+      updateDateTime
       creatorLogin
       fileExtension
       fileSize
@@ -57606,7 +57853,6 @@ export const OnlineReviewInfoFragmentDoc = gql`
     onlineVideoId
     link
     status
-    statusDetails
     updateDateTime
     fileSize
   }
@@ -57801,7 +58047,6 @@ export const OnlineReviewVideoInfoFragmentDoc = gql`
   onlineVideoId
   link
   status
-  statusDetails
   updateDateTime
   fileSize
 }
@@ -58095,6 +58340,13 @@ export const UserRoleLoaderGetRolesDocument = gql`
       orgUnitShortName
       roleCode
     }
+  }
+}
+    `;
+export const RejectCalendarEventFeedbackDocument = gql`
+    mutation rejectCalendarEventFeedback($eventId: ID!) {
+  event {
+    rejectCalendarEventFeedback(eventId: $eventId)
   }
 }
     `;
@@ -58962,6 +59214,15 @@ export const CalendarGetNameLessStudentTimeslotsForReviewDocument = gql`
 }
     ${ProjectReviewsInfoFragmentDoc}
 ${CalendarNameLessTimeslotFragmentDoc}`;
+export const CalendarGetMyActualP2pRequestsDocument = gql`
+    query calendarGetMyActualP2pRequests($from: DateTime!, $to: DateTime!) {
+  student {
+    getMyActualP2pRequests(from: $from, to: $to) {
+      ...CalendarP2pRequest
+    }
+  }
+}
+    ${CalendarP2pRequestFragmentDoc}`;
 export const GetPenaltyReasonsDocument = gql`
     query getPenaltyReasons {
   penalty {
@@ -59127,6 +59388,22 @@ export const CreateCalendarEventFeedbackDocument = gql`
   }
 }
     `;
+export const P2pRequestCardCancelP2pRequestDocument = gql`
+    mutation P2pRequestCardCancelP2pRequest($p2pRequestId: ID!) {
+  student {
+    cancelP2pRequest(p2pRequestId: $p2pRequestId)
+  }
+}
+    `;
+export const P2pRequestCardCreateP2pRequestDocument = gql`
+    mutation p2pRequestCardCreateP2pRequest($startTime: DateTime!, $isOnline: Boolean!, $goalId: ID!) {
+  student {
+    createP2pRequest(startTime: $startTime, isOnline: $isOnline, goalId: $goalId) {
+      p2pRequestId
+    }
+  }
+}
+    `;
 export const CalendarGetUploadedAndNotConfirmedVideosDocument = gql`
     query CalendarGetUploadedAndNotConfirmedVideos($filledChecklistId: ID!) {
   sc21StudentTaskCheck {
@@ -59134,7 +59411,6 @@ export const CalendarGetUploadedAndNotConfirmedVideosDocument = gql`
       onlineVideoId
       link
       status
-      statusDetails
       updateDateTime
       fileSize
     }
@@ -59258,6 +59534,13 @@ export const CalendarGetMyReviewsDocument = gql`
   }
 }
     ${ReviewFragmentDoc}`;
+export const GetEventSlotDateTimeDocument = gql`
+    query getEventSlotDateTime($bookingId: ID!) {
+  calendarEventS21 {
+    getEventSlotDateTime(bookingId: $bookingId)
+  }
+}
+    `;
 export const CompetitionCoalitionGetMyCoalitionMembersDocument = gql`
     query competitionCoalitionGetMyCoalitionMembers($page: PagingInput) {
   student {
@@ -59462,38 +59745,6 @@ export const GetCollectionListDocument = gql`
   }
 }
     ${MediatekaCollectionItemFragmentFragmentDoc}`;
-export const GetProjectAccessGroupIdByStudentAnswerIdDocument = gql`
-    query getProjectAccessGroupIdByStudentAnswerId($answerId: ID!) {
-  sc21StudentTaskCheck {
-    getProjectAccessGroupIdByStudentAnswerId(answerId: $answerId)
-  }
-}
-    `;
-export const GetTaskSolutionTypeDocument = gql`
-    query getTaskSolutionType($taskId: ID!) {
-  sc21StudentTaskCheck {
-    getTaskSolutionType(taskId: $taskId)
-  }
-}
-    `;
-export const GetPlatfSolutionInfoDocument = gql`
-    query getPlatfSolutionInfo($studentGoalAttemptId: ID!) {
-  sc21StudentTaskCheck {
-    getPlatfSolutionInfo(studentGoalAttemptId: $studentGoalAttemptId) {
-      ...PlatfSolutionInfo
-    }
-  }
-}
-    ${PlatfSolutionInfoFragmentDoc}`;
-export const SaveSolutionCommentDocument = gql`
-    mutation saveSolutionComment($taskId: ID!, $comment: String!) {
-  sc21StudentTaskCheck {
-    saveSolutionComment(taskId: $taskId, comment: $comment) {
-      ...StudentAnswerComment
-    }
-  }
-}
-    ${StudentAnswerCommentFragmentDoc}`;
 export const MarkFileSolutionPendingDocument = gql`
     mutation markFileSolutionPending($taskId: ID!, $initialFileEvents: [StudyProcessFileInitialInput!]!) {
   sc21StudentTaskCheck {
@@ -59540,6 +59791,38 @@ export const MarkFileSolutionUploadedStatusDocument = gql`
   }
 }
     ${StudyProcessFileFragmentDoc}`;
+export const GetProjectAccessGroupIdByStudentAnswerIdDocument = gql`
+    query getProjectAccessGroupIdByStudentAnswerId($answerId: ID!) {
+  sc21StudentTaskCheck {
+    getProjectAccessGroupIdByStudentAnswerId(answerId: $answerId)
+  }
+}
+    `;
+export const GetPlatfSolutionInfoDocument = gql`
+    query getPlatfSolutionInfo($studentGoalAttemptId: ID!) {
+  sc21StudentTaskCheck {
+    getPlatfSolutionInfo(studentGoalAttemptId: $studentGoalAttemptId) {
+      ...PlatfSolutionInfo
+    }
+  }
+}
+    ${PlatfSolutionInfoFragmentDoc}`;
+export const GetTaskSolutionTypeDocument = gql`
+    query getTaskSolutionType($taskId: ID!) {
+  sc21StudentTaskCheck {
+    getTaskSolutionType(taskId: $taskId)
+  }
+}
+    `;
+export const SaveSolutionCommentDocument = gql`
+    mutation saveSolutionComment($taskId: ID!, $comment: String!) {
+  sc21StudentTaskCheck {
+    saveSolutionComment(taskId: $taskId, comment: $comment) {
+      ...StudentAnswerComment
+    }
+  }
+}
+    ${StudentAnswerCommentFragmentDoc}`;
 export const GetPenaltiesCountDocument = gql`
     query getPenaltiesCount($statuses: [String]!) {
   penalty {
@@ -59593,9 +59876,32 @@ export const GetCoinsHistoryDocument = gql`
 export const PublicProfileGetProjectsDocument = gql`
     query publicProfileGetProjects($studentId: UUID!, $stageGroupId: ID!) {
   school21 {
-    getStudentProjectsForPublicProfileByStageGroup(
+    getStudentProjectsForPublicProfileV2(
       studentId: $studentId
       stageGroupId: $stageGroupId
+    ) {
+      groupName
+      name
+      experience
+      finalPercentage
+      goalId
+      goalStatus
+      amountAnswers
+      amountReviewedAnswers
+      executionType
+      localCourseId
+      courseType
+      displayedCourseStatus
+    }
+  }
+}
+    `;
+export const PublicProfileGetProjectsStatusesDocument = gql`
+    query publicProfileGetProjectsStatuses($studentId: UUID!, $projects: [StudentItemEntityInput!]!) {
+  school21 {
+    getStudentProjectStatusesForPublicProfileV2(
+      studentId: $studentId
+      projects: $projects
     ) {
       groupName
       name
@@ -59984,6 +60290,8 @@ export const ProjectMapGetStudentStageGroupsDocument = gql`
     query ProjectMapGetStudentStageGroups($studentId: UUID!) {
   school21 {
     loadStudentStageGroups(studentId: $studentId) {
+      studentId
+      stageGroupStudentId
       stageGroupS21 {
         waveId
         waveName
@@ -60094,11 +60402,11 @@ export const UpdateP2POnlineTypeDocument = gql`
     mutation updateP2POnlineType($bookingId: ID!) {
   sc21StudentTaskCheck {
     enableOnlineP2pCheck(bookingId: $bookingId) {
-      id
+      ...CalendarReviewBooking
     }
   }
 }
-    `;
+    ${CalendarReviewBookingFragmentDoc}`;
 export const MarkAbsenceAtP2PDocument = gql`
     mutation markAbsenceAtP2P($bookingId: ID!) {
   student {
@@ -60926,6 +61234,9 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     userRoleLoaderGetRoles(variables?: UserRoleLoaderGetRolesQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<UserRoleLoaderGetRolesQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<UserRoleLoaderGetRolesQuery>(UserRoleLoaderGetRolesDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'userRoleLoaderGetRoles', 'query', variables);
     },
+    rejectCalendarEventFeedback(variables: RejectCalendarEventFeedbackMutationVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<RejectCalendarEventFeedbackMutation> {
+      return withWrapper((wrappedRequestHeaders) => client.request<RejectCalendarEventFeedbackMutation>(RejectCalendarEventFeedbackDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'rejectCalendarEventFeedback', 'mutation', variables);
+    },
     createEventFeedback(variables: CreateEventFeedbackMutationVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<CreateEventFeedbackMutation> {
       return withWrapper((wrappedRequestHeaders) => client.request<CreateEventFeedbackMutation>(CreateEventFeedbackDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'createEventFeedback', 'mutation', variables);
     },
@@ -61109,6 +61420,9 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     calendarGetNameLessStudentTimeslotsForReview(variables: CalendarGetNameLessStudentTimeslotsForReviewQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<CalendarGetNameLessStudentTimeslotsForReviewQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<CalendarGetNameLessStudentTimeslotsForReviewQuery>(CalendarGetNameLessStudentTimeslotsForReviewDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'calendarGetNameLessStudentTimeslotsForReview', 'query', variables);
     },
+    calendarGetMyActualP2pRequests(variables: CalendarGetMyActualP2pRequestsQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<CalendarGetMyActualP2pRequestsQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<CalendarGetMyActualP2pRequestsQuery>(CalendarGetMyActualP2pRequestsDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'calendarGetMyActualP2pRequests', 'query', variables);
+    },
     getPenaltyReasons(variables?: GetPenaltyReasonsQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<GetPenaltyReasonsQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<GetPenaltyReasonsQuery>(GetPenaltyReasonsDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'getPenaltyReasons', 'query', variables);
     },
@@ -61142,6 +61456,12 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     createCalendarEventFeedback(variables: CreateCalendarEventFeedbackMutationVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<CreateCalendarEventFeedbackMutation> {
       return withWrapper((wrappedRequestHeaders) => client.request<CreateCalendarEventFeedbackMutation>(CreateCalendarEventFeedbackDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'createCalendarEventFeedback', 'mutation', variables);
     },
+    P2pRequestCardCancelP2pRequest(variables: P2pRequestCardCancelP2pRequestMutationVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<P2pRequestCardCancelP2pRequestMutation> {
+      return withWrapper((wrappedRequestHeaders) => client.request<P2pRequestCardCancelP2pRequestMutation>(P2pRequestCardCancelP2pRequestDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'P2pRequestCardCancelP2pRequest', 'mutation', variables);
+    },
+    p2pRequestCardCreateP2pRequest(variables: P2pRequestCardCreateP2pRequestMutationVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<P2pRequestCardCreateP2pRequestMutation> {
+      return withWrapper((wrappedRequestHeaders) => client.request<P2pRequestCardCreateP2pRequestMutation>(P2pRequestCardCreateP2pRequestDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'p2pRequestCardCreateP2pRequest', 'mutation', variables);
+    },
     CalendarGetUploadedAndNotConfirmedVideos(variables: CalendarGetUploadedAndNotConfirmedVideosQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<CalendarGetUploadedAndNotConfirmedVideosQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<CalendarGetUploadedAndNotConfirmedVideosQuery>(CalendarGetUploadedAndNotConfirmedVideosDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'CalendarGetUploadedAndNotConfirmedVideos', 'query', variables);
     },
@@ -61174,6 +61494,9 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     },
     calendarGetMyReviews(variables?: CalendarGetMyReviewsQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<CalendarGetMyReviewsQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<CalendarGetMyReviewsQuery>(CalendarGetMyReviewsDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'calendarGetMyReviews', 'query', variables);
+    },
+    getEventSlotDateTime(variables: GetEventSlotDateTimeQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<GetEventSlotDateTimeQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<GetEventSlotDateTimeQuery>(GetEventSlotDateTimeDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'getEventSlotDateTime', 'query', variables);
     },
     competitionCoalitionGetMyCoalitionMembers(variables?: CompetitionCoalitionGetMyCoalitionMembersQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<CompetitionCoalitionGetMyCoalitionMembersQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<CompetitionCoalitionGetMyCoalitionMembersQuery>(CompetitionCoalitionGetMyCoalitionMembersDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'competitionCoalitionGetMyCoalitionMembers', 'query', variables);
@@ -61223,18 +61546,6 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     getCollectionList(variables?: GetCollectionListQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<GetCollectionListQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<GetCollectionListQuery>(GetCollectionListDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'getCollectionList', 'query', variables);
     },
-    getProjectAccessGroupIdByStudentAnswerId(variables: GetProjectAccessGroupIdByStudentAnswerIdQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<GetProjectAccessGroupIdByStudentAnswerIdQuery> {
-      return withWrapper((wrappedRequestHeaders) => client.request<GetProjectAccessGroupIdByStudentAnswerIdQuery>(GetProjectAccessGroupIdByStudentAnswerIdDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'getProjectAccessGroupIdByStudentAnswerId', 'query', variables);
-    },
-    getTaskSolutionType(variables: GetTaskSolutionTypeQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<GetTaskSolutionTypeQuery> {
-      return withWrapper((wrappedRequestHeaders) => client.request<GetTaskSolutionTypeQuery>(GetTaskSolutionTypeDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'getTaskSolutionType', 'query', variables);
-    },
-    getPlatfSolutionInfo(variables: GetPlatfSolutionInfoQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<GetPlatfSolutionInfoQuery> {
-      return withWrapper((wrappedRequestHeaders) => client.request<GetPlatfSolutionInfoQuery>(GetPlatfSolutionInfoDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'getPlatfSolutionInfo', 'query', variables);
-    },
-    saveSolutionComment(variables: SaveSolutionCommentMutationVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<SaveSolutionCommentMutation> {
-      return withWrapper((wrappedRequestHeaders) => client.request<SaveSolutionCommentMutation>(SaveSolutionCommentDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'saveSolutionComment', 'mutation', variables);
-    },
     markFileSolutionPending(variables: MarkFileSolutionPendingMutationVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<MarkFileSolutionPendingMutation> {
       return withWrapper((wrappedRequestHeaders) => client.request<MarkFileSolutionPendingMutation>(MarkFileSolutionPendingDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'markFileSolutionPending', 'mutation', variables);
     },
@@ -61246,6 +61557,18 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     },
     markFileSolutionUploadedStatus(variables: MarkFileSolutionUploadedStatusMutationVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<MarkFileSolutionUploadedStatusMutation> {
       return withWrapper((wrappedRequestHeaders) => client.request<MarkFileSolutionUploadedStatusMutation>(MarkFileSolutionUploadedStatusDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'markFileSolutionUploadedStatus', 'mutation', variables);
+    },
+    getProjectAccessGroupIdByStudentAnswerId(variables: GetProjectAccessGroupIdByStudentAnswerIdQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<GetProjectAccessGroupIdByStudentAnswerIdQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<GetProjectAccessGroupIdByStudentAnswerIdQuery>(GetProjectAccessGroupIdByStudentAnswerIdDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'getProjectAccessGroupIdByStudentAnswerId', 'query', variables);
+    },
+    getPlatfSolutionInfo(variables: GetPlatfSolutionInfoQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<GetPlatfSolutionInfoQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<GetPlatfSolutionInfoQuery>(GetPlatfSolutionInfoDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'getPlatfSolutionInfo', 'query', variables);
+    },
+    getTaskSolutionType(variables: GetTaskSolutionTypeQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<GetTaskSolutionTypeQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<GetTaskSolutionTypeQuery>(GetTaskSolutionTypeDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'getTaskSolutionType', 'query', variables);
+    },
+    saveSolutionComment(variables: SaveSolutionCommentMutationVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<SaveSolutionCommentMutation> {
+      return withWrapper((wrappedRequestHeaders) => client.request<SaveSolutionCommentMutation>(SaveSolutionCommentDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'saveSolutionComment', 'mutation', variables);
     },
     getPenaltiesCount(variables: GetPenaltiesCountQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<GetPenaltiesCountQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<GetPenaltiesCountQuery>(GetPenaltiesCountDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'getPenaltiesCount', 'query', variables);
@@ -61264,6 +61587,9 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     },
     publicProfileGetProjects(variables: PublicProfileGetProjectsQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<PublicProfileGetProjectsQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<PublicProfileGetProjectsQuery>(PublicProfileGetProjectsDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'publicProfileGetProjects', 'query', variables);
+    },
+    publicProfileGetProjectsStatuses(variables: PublicProfileGetProjectsStatusesQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<PublicProfileGetProjectsStatusesQuery> {
+      return withWrapper((wrappedRequestHeaders) => client.request<PublicProfileGetProjectsStatusesQuery>(PublicProfileGetProjectsStatusesDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'publicProfileGetProjectsStatuses', 'query', variables);
     },
     publicProfileLoadStageGroups(variables: PublicProfileLoadStageGroupsQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<PublicProfileLoadStageGroupsQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<PublicProfileLoadStageGroupsQuery>(PublicProfileLoadStageGroupsDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'publicProfileLoadStageGroups', 'query', variables);
@@ -61575,6 +61901,13 @@ export type UserRoleLoaderGetRolesQueryVariables = Exact<{ [key: string]: never;
 
 
 export type UserRoleLoaderGetRolesQuery = { __typename?: 'Query', user?: { __typename?: 'UserQueries', getCurrentUser: { __typename?: 'User', id: string, functionalRoles: Array<{ __typename?: 'FunctionalRole', code: string }>, studentRoles?: Array<{ __typename?: 'StudentRole', id: string, status: RoleStatus, school: { __typename?: 'SafeSchool', id: string, shortName: string, organizationType: string } }> | null, userSchoolPermissions: Array<{ __typename?: 'UserSchoolPermission', schoolId?: string | null, permissions: Array<string> }>, systemAdminRole?: { __typename?: 'SystemAdminRole', id: string } | null, businessAdminRolesV2?: Array<{ __typename?: 'BusinessAdminRoleV2', id: string, orgUnitId: string, school?: { __typename?: 'SafeSchool', id: string, organizationType: string } | null }> | null }, getCurrentUserSchoolRoles: Array<{ __typename?: 'UserSchoolRole', schoolId?: string | null }>, getCurrentUserRoles: Array<{ __typename?: 'UserRole', orgUnitId: string, orgUnitShortName: string, roleCode: string }> } | null };
+
+export type RejectCalendarEventFeedbackMutationVariables = Exact<{
+  eventId: Scalars['ID']['input'];
+}>;
+
+
+export type RejectCalendarEventFeedbackMutation = { __typename?: 'Mutation', event?: { __typename?: 'EventMutations', rejectCalendarEventFeedback: boolean } | null };
 
 export type CreateEventFeedbackMutationVariables = Exact<{
   calendarEventId: Scalars['ID']['input'];
@@ -61988,7 +62321,7 @@ export type GroupProjectStatisticsFragment = { __typename?: 'GroupProjectStatist
 
 export type InternshipStudentReviewListFragment = { __typename?: 'InternshipStudentReviewList', numberReview?: number | null, studentProgressInternshipId?: number | null, reviewModelList?: Array<{ __typename?: 'InternshipStudentReview', reviewOrderNumber?: number | null, planTimeMentorReview?: Date | null, factTimeMentorReview?: Date | null, percentageMentorReview?: number | null, commentMentorReview?: string | null, threshold?: number | null } | null> | null };
 
-export type ProjectReviewsInfoFragment = { __typename?: 'ProjectReviewsInfo', reviewByStudentCount: number, relevantReviewByStudentsCount: number, reviewByInspectionStaffCount: number, relevantReviewByInspectionStaffCount: number };
+export type ProjectReviewsInfoFragment = { __typename?: 'ProjectReviewsInfo', reviewByStudentCount: number, relevantReviewByStudentsCount: number, reviewByInspectionStaffCount: number, relevantReviewByInspectionStaffCount: number, p2pRequirementStatus: P2pRequirementStatus };
 
 export type ProjectStatisticsFragment = { __typename?: 'ProjectStatistics', registeredStudents: number, inProgressStudents: number, evaluationStudents: number, finishedStudents: number, acceptedStudents: number, failedStudents: number, retriedStudentsPercentage: number, groupProjectStatistics?: { __typename?: 'GroupProjectStatistics', inProgressTeams: number, evaluationTeams: number, finishedTeams: number, acceptedTeams: number, failedTeams: number } | null };
 
@@ -62002,7 +62335,7 @@ export type InternshipStudentReviewInfoFragment = { __typename?: 'InternshipStud
 
 export type InternshipApplicantInfoFragment = { __typename?: 'InternshipStudentInfo', link?: string | null, internshipStartTime?: Date | null, internshipCompletionTime?: Date | null };
 
-export type P2PInfoFragment = { __typename?: 'P2PChecksInfo', cookiesCount: number, periodOfVerification: number, projectReviewsInfo: { __typename?: 'ProjectReviewsInfo', reviewByStudentCount: number, relevantReviewByStudentsCount: number, reviewByInspectionStaffCount: number, relevantReviewByInspectionStaffCount: number } };
+export type P2PInfoFragment = { __typename?: 'P2PChecksInfo', cookiesCount: number, periodOfVerification: number, projectReviewsInfo: { __typename?: 'ProjectReviewsInfo', reviewByStudentCount: number, relevantReviewByStudentsCount: number, reviewByInspectionStaffCount: number, relevantReviewByInspectionStaffCount: number, p2pRequirementStatus: P2pRequirementStatus } };
 
 export type InternshipModuleCoverInfoFragment = { __typename?: 'ModuleCoverInformation', softSkills: Array<{ __typename?: 'SoftSkillPoint', softSkillId: number, softSkillName: string, totalPower: number, maxPower: number, currentUserPower: number, achievedUserPower?: number | null }>, timeline: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, status: TimelineItemStatus, start?: Date | null, end?: Date | null, order?: number | null, children?: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, elementType?: TimelineElementEnum | null, status: TimelineItemStatus, start?: Date | null, end?: Date | null, order?: number | null } | null> | null }>, projectStatistics?: { __typename?: 'ProjectStatistics', registeredStudents: number, inProgressStudents: number, evaluationStudents: number, finishedStudents: number, acceptedStudents: number, failedStudents: number, retriedStudentsPercentage: number, groupProjectStatistics?: { __typename?: 'GroupProjectStatistics', inProgressTeams: number, evaluationTeams: number, finishedTeams: number, acceptedTeams: number, failedTeams: number } | null } | null };
 
@@ -62013,7 +62346,7 @@ export type GetInternshipInfoQueryVariables = Exact<{
 }>;
 
 
-export type GetInternshipInfoQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getModuleById: { __typename?: 'StudentModule', id: string, moduleTitle: string, finalPercentage?: number | null, finalPoint?: number | null, goalExecutionType?: ModuleExecutionType | null, displayedGoalStatus?: DisplayedGoalStatus | null, accessBeforeStartProgress?: boolean | null, resultModuleCompletion?: ResultModuleCompletion | null, finishedExecutionDateByScheduler?: Date | null, durationFromStageSubjectGroupPlan?: number | null, currentAttemptNumber?: number | null, isDeadlineFree?: boolean | null, isRetryAvailable: boolean, localCourseId?: string | null, courseBaseParameters?: { __typename?: 'CourseBaseParameters', isGradedCourse: boolean } | null, studyModule: { __typename?: 'StudyModule', id: string, idea: string, duration: number, goalPoint?: number | null, retrySettings?: { __typename?: 'ModuleAttemptsSettings', maxModuleAttempts?: number | null, isUnlimitedAttempts: boolean } | null, levels: Array<{ __typename?: 'StudyModuleLevel', id: string, goalElements: Array<{ __typename?: 'StudyModuleGoalElement', id: string, tasks: Array<{ __typename?: 'Task', id: string, taskId: string }> }> }> }, currentTask?: { __typename?: 'StudentTask', id: string, taskId: string, task: { __typename?: 'Task', id: string, assignmentType: TaskAssignmentEnum, checkTypes: Array<TaskCheckEnum>, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number, maxCodeReviewCount: number, codeReviewCost: number, ciCdMode: GitlabCiCdType } }, lastAnswer?: { __typename?: 'StudentAnswer', id: string } | null } | null }, getModuleCoverInformation?: { __typename?: 'ModuleCoverInformation', softSkills: Array<{ __typename?: 'SoftSkillPoint', softSkillId: number, softSkillName: string, totalPower: number, maxPower: number, currentUserPower: number, achievedUserPower?: number | null }>, timeline: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, status: TimelineItemStatus, start?: Date | null, end?: Date | null, order?: number | null, children?: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, elementType?: TimelineElementEnum | null, status: TimelineItemStatus, start?: Date | null, end?: Date | null, order?: number | null } | null> | null }>, projectStatistics?: { __typename?: 'ProjectStatistics', registeredStudents: number, inProgressStudents: number, evaluationStudents: number, finishedStudents: number, acceptedStudents: number, failedStudents: number, retriedStudentsPercentage: number, groupProjectStatistics?: { __typename?: 'GroupProjectStatistics', inProgressTeams: number, evaluationTeams: number, finishedTeams: number, acceptedTeams: number, failedTeams: number } | null } | null } | null, getP2PChecksInfo?: { __typename?: 'P2PChecksInfo', cookiesCount: number, periodOfVerification: number, projectReviewsInfo: { __typename?: 'ProjectReviewsInfo', reviewByStudentCount: number, relevantReviewByStudentsCount: number, reviewByInspectionStaffCount: number, relevantReviewByInspectionStaffCount: number } } | null } | null, s21Internship?: { __typename?: 's21InternshipQueries', getInternshipDataById: { __typename?: 'InternshipStudentInfo', link?: string | null, internshipStartTime?: Date | null, internshipCompletionTime?: Date | null }, getInternshipReviewDataInfo: { __typename?: 'InternshipStudentReviewInfo', internshipStudentReviewList?: Array<{ __typename?: 'InternshipStudentReviewList', numberReview?: number | null, studentProgressInternshipId?: number | null, reviewModelList?: Array<{ __typename?: 'InternshipStudentReview', reviewOrderNumber?: number | null, planTimeMentorReview?: Date | null, factTimeMentorReview?: Date | null, percentageMentorReview?: number | null, commentMentorReview?: string | null, threshold?: number | null } | null> | null } | null> | null } } | null };
+export type GetInternshipInfoQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getModuleById: { __typename?: 'StudentModule', id: string, moduleTitle: string, finalPercentage?: number | null, finalPoint?: number | null, goalExecutionType?: ModuleExecutionType | null, displayedGoalStatus?: DisplayedGoalStatus | null, accessBeforeStartProgress?: boolean | null, resultModuleCompletion?: ResultModuleCompletion | null, finishedExecutionDateByScheduler?: Date | null, durationFromStageSubjectGroupPlan?: number | null, currentAttemptNumber?: number | null, isDeadlineFree?: boolean | null, isRetryAvailable: boolean, localCourseId?: string | null, courseBaseParameters?: { __typename?: 'CourseBaseParameters', isGradedCourse: boolean } | null, studyModule: { __typename?: 'StudyModule', id: string, idea: string, duration: number, goalPoint?: number | null, retrySettings?: { __typename?: 'ModuleAttemptsSettings', maxModuleAttempts?: number | null, isUnlimitedAttempts: boolean } | null, levels: Array<{ __typename?: 'StudyModuleLevel', id: string, goalElements: Array<{ __typename?: 'StudyModuleGoalElement', id: string, tasks: Array<{ __typename?: 'Task', id: string, taskId: string }> }> }> }, currentTask?: { __typename?: 'StudentTask', id: string, taskId: string, task: { __typename?: 'Task', id: string, assignmentType: TaskAssignmentEnum, checkTypes: Array<TaskCheckEnum>, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number, maxCodeReviewCount: number, codeReviewCost: number, ciCdMode: GitlabCiCdType } }, lastAnswer?: { __typename?: 'StudentAnswer', id: string } | null } | null }, getModuleCoverInformation?: { __typename?: 'ModuleCoverInformation', softSkills: Array<{ __typename?: 'SoftSkillPoint', softSkillId: number, softSkillName: string, totalPower: number, maxPower: number, currentUserPower: number, achievedUserPower?: number | null }>, timeline: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, status: TimelineItemStatus, start?: Date | null, end?: Date | null, order?: number | null, children?: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, elementType?: TimelineElementEnum | null, status: TimelineItemStatus, start?: Date | null, end?: Date | null, order?: number | null } | null> | null }>, projectStatistics?: { __typename?: 'ProjectStatistics', registeredStudents: number, inProgressStudents: number, evaluationStudents: number, finishedStudents: number, acceptedStudents: number, failedStudents: number, retriedStudentsPercentage: number, groupProjectStatistics?: { __typename?: 'GroupProjectStatistics', inProgressTeams: number, evaluationTeams: number, finishedTeams: number, acceptedTeams: number, failedTeams: number } | null } | null } | null, getP2PChecksInfo?: { __typename?: 'P2PChecksInfo', cookiesCount: number, periodOfVerification: number, projectReviewsInfo: { __typename?: 'ProjectReviewsInfo', reviewByStudentCount: number, relevantReviewByStudentsCount: number, reviewByInspectionStaffCount: number, relevantReviewByInspectionStaffCount: number, p2pRequirementStatus: P2pRequirementStatus } } | null } | null, s21Internship?: { __typename?: 's21InternshipQueries', getInternshipDataById: { __typename?: 'InternshipStudentInfo', link?: string | null, internshipStartTime?: Date | null, internshipCompletionTime?: Date | null }, getInternshipReviewDataInfo: { __typename?: 'InternshipStudentReviewInfo', internshipStudentReviewList?: Array<{ __typename?: 'InternshipStudentReviewList', numberReview?: number | null, studentProgressInternshipId?: number | null, reviewModelList?: Array<{ __typename?: 'InternshipStudentReview', reviewOrderNumber?: number | null, planTimeMentorReview?: Date | null, factTimeMentorReview?: Date | null, percentageMentorReview?: number | null, commentMentorReview?: string | null, threshold?: number | null } | null> | null } | null> | null } } | null };
 
 export type RegisterToInternshipMutationVariables = Exact<{
   goalId: Scalars['ID']['input'];
@@ -62033,7 +62366,7 @@ export type VerifiableStudentItemFragment = { __typename?: 'VerifiableStudent', 
 
 export type CalendarReviewUserFragment = { __typename?: 'User', id: string, login?: string | null };
 
-export type CalendarReviewBookingFragment = { __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null };
+export type CalendarReviewBookingFragment = { __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole, eventCode?: string | null }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null };
 
 export type CalendarGetMyBookingsQueryVariables = Exact<{
   from: Scalars['DateTime']['input'];
@@ -62041,7 +62374,7 @@ export type CalendarGetMyBookingsQueryVariables = Exact<{
 }>;
 
 
-export type CalendarGetMyBookingsQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getMyCalendarBookings: Array<{ __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null }> } | null };
+export type CalendarGetMyBookingsQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getMyCalendarBookings: Array<{ __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole, eventCode?: string | null }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null }> } | null };
 
 export type CalendarGetCodeReviewDataQueryVariables = Exact<{
   studentGoalId: Scalars['ID']['input'];
@@ -62065,7 +62398,7 @@ export type CalendarEventActivityFragment = { __typename?: 'ActivityEvent', acti
 
 export type CalendarEventExamFragment = { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, name: string, location: string, currentStudentsCount: number, maxStudentCount?: number | null, updateDate: Date, goalId: string, goalName: string, isWaitListActive: boolean, isInWaitList?: boolean | null, stopRegisterDate?: Date | null };
 
-export type CalendarEventFragment = { __typename?: 'CalendarEvent', id: string, start: Date, end: Date, description: string, eventType?: string | null, eventCode?: string | null, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, type: TimeSlotTypeEnum, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }>, bookings: Array<{ __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, name: string, location: string, currentStudentsCount: number, maxStudentCount?: number | null, updateDate: Date, goalId: string, goalName: string, isWaitListActive: boolean, isInWaitList?: boolean | null, stopRegisterDate?: Date | null } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', status?: ParticipantEventStatus | null, activityType: string, isMandatory: boolean, isWaitListActive: boolean, isVisible: boolean, activityEventId: string, eventId: string, name: string, beginDate: Date, endDate: Date, isRegistered?: boolean | null, description?: string | null, currentStudentsCount: number, maxStudentCount?: number | null, location: string, updateDate: Date, isInWaitList?: boolean | null, stopRegisterDate?: Date | null, studentFeedback?: { __typename?: 'StudentEventFeedback', id: string, rating: number, comment?: string | null } | null, comments?: Array<{ __typename?: 'ParticipantEventComment', type: ParticipantEventCommentType, createTs: Date, comment: string }> | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, goals: Array<{ __typename?: 'Goal', goalId: string, goalName: string }>, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null };
+export type CalendarEventFragment = { __typename?: 'CalendarEvent', id: string, start: Date, end: Date, description: string, eventType?: string | null, eventCode?: string | null, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, type: TimeSlotTypeEnum, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }>, bookings: Array<{ __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole, eventCode?: string | null }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, name: string, location: string, currentStudentsCount: number, maxStudentCount?: number | null, updateDate: Date, goalId: string, goalName: string, isWaitListActive: boolean, isInWaitList?: boolean | null, stopRegisterDate?: Date | null } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', status?: ParticipantEventStatus | null, activityType: string, isMandatory: boolean, isWaitListActive: boolean, isVisible: boolean, activityEventId: string, eventId: string, name: string, beginDate: Date, endDate: Date, isRegistered?: boolean | null, description?: string | null, currentStudentsCount: number, maxStudentCount?: number | null, location: string, updateDate: Date, isInWaitList?: boolean | null, stopRegisterDate?: Date | null, studentFeedback?: { __typename?: 'StudentEventFeedback', id: string, rating: number, comment?: string | null, isEmpty: boolean } | null, comments?: Array<{ __typename?: 'ParticipantEventComment', type: ParticipantEventCommentType, createTs: Date, comment: string }> | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, goals: Array<{ __typename?: 'Goal', goalId: string, goalName: string }>, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null };
 
 export type CalendarGetEventsQueryVariables = Exact<{
   from: Scalars['DateTime']['input'];
@@ -62073,7 +62406,7 @@ export type CalendarGetEventsQueryVariables = Exact<{
 }>;
 
 
-export type CalendarGetEventsQuery = { __typename?: 'Query', calendarEventS21?: { __typename?: 'CalendarEventS21Queries', getMyCalendarEvents: Array<{ __typename?: 'CalendarEvent', id: string, start: Date, end: Date, description: string, eventType?: string | null, eventCode?: string | null, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, type: TimeSlotTypeEnum, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }>, bookings: Array<{ __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, name: string, location: string, currentStudentsCount: number, maxStudentCount?: number | null, updateDate: Date, goalId: string, goalName: string, isWaitListActive: boolean, isInWaitList?: boolean | null, stopRegisterDate?: Date | null } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', status?: ParticipantEventStatus | null, activityType: string, isMandatory: boolean, isWaitListActive: boolean, isVisible: boolean, activityEventId: string, eventId: string, name: string, beginDate: Date, endDate: Date, isRegistered?: boolean | null, description?: string | null, currentStudentsCount: number, maxStudentCount?: number | null, location: string, updateDate: Date, isInWaitList?: boolean | null, stopRegisterDate?: Date | null, studentFeedback?: { __typename?: 'StudentEventFeedback', id: string, rating: number, comment?: string | null } | null, comments?: Array<{ __typename?: 'ParticipantEventComment', type: ParticipantEventCommentType, createTs: Date, comment: string }> | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, goals: Array<{ __typename?: 'Goal', goalId: string, goalName: string }>, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null }> } | null };
+export type CalendarGetEventsQuery = { __typename?: 'Query', calendarEventS21?: { __typename?: 'CalendarEventS21Queries', getMyCalendarEvents: Array<{ __typename?: 'CalendarEvent', id: string, start: Date, end: Date, description: string, eventType?: string | null, eventCode?: string | null, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, type: TimeSlotTypeEnum, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }>, bookings: Array<{ __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole, eventCode?: string | null }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, name: string, location: string, currentStudentsCount: number, maxStudentCount?: number | null, updateDate: Date, goalId: string, goalName: string, isWaitListActive: boolean, isInWaitList?: boolean | null, stopRegisterDate?: Date | null } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', status?: ParticipantEventStatus | null, activityType: string, isMandatory: boolean, isWaitListActive: boolean, isVisible: boolean, activityEventId: string, eventId: string, name: string, beginDate: Date, endDate: Date, isRegistered?: boolean | null, description?: string | null, currentStudentsCount: number, maxStudentCount?: number | null, location: string, updateDate: Date, isInWaitList?: boolean | null, stopRegisterDate?: Date | null, studentFeedback?: { __typename?: 'StudentEventFeedback', id: string, rating: number, comment?: string | null, isEmpty: boolean } | null, comments?: Array<{ __typename?: 'ParticipantEventComment', type: ParticipantEventCommentType, createTs: Date, comment: string }> | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, goals: Array<{ __typename?: 'Goal', goalId: string, goalName: string }>, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null }> } | null };
 
 export type CalendarExamFragment = { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, name: string, location: string, maxStudentCount?: number | null, currentStudentsCount: number, updateDate: Date, goalId: string, goalName: string, isWaitListActive: boolean, isInWaitList?: boolean | null, stopRegisterDate?: Date | null };
 
@@ -62094,7 +62427,17 @@ export type CalendarGetNameLessStudentTimeslotsForReviewQueryVariables = Exact<{
 }>;
 
 
-export type CalendarGetNameLessStudentTimeslotsForReviewQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getNameLessStudentTimeslotsForReview: { __typename?: 'CalendarNamelessTimeSlotResponse', checkDuration: number, projectReviewsInfo: { __typename?: 'ProjectReviewsInfo', reviewByStudentCount: number, relevantReviewByStudentsCount: number, reviewByInspectionStaffCount: number, relevantReviewByInspectionStaffCount: number }, timeSlots: Array<{ __typename?: 'CalendarNamelessTimeSlot', start: Date, end: Date, validStartTimes: Array<Date>, staffSlot?: boolean | null }> } } | null };
+export type CalendarGetNameLessStudentTimeslotsForReviewQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getNameLessStudentTimeslotsForReview: { __typename?: 'CalendarNamelessTimeSlotResponse', checkDuration: number, projectReviewsInfo: { __typename?: 'ProjectReviewsInfo', reviewByStudentCount: number, relevantReviewByStudentsCount: number, reviewByInspectionStaffCount: number, relevantReviewByInspectionStaffCount: number, p2pRequirementStatus: P2pRequirementStatus }, timeSlots: Array<{ __typename?: 'CalendarNamelessTimeSlot', start: Date, end: Date, validStartTimes: Array<Date>, staffSlot?: boolean | null }> } } | null };
+
+export type CalendarP2pRequestFragment = { __typename?: 'P2pRequest', p2pRequestId: string, startTime: Date, endTime: Date, isOnline: boolean, goalId: string, goalName: string, studentAnswerId: string };
+
+export type CalendarGetMyActualP2pRequestsQueryVariables = Exact<{
+  from: Scalars['DateTime']['input'];
+  to: Scalars['DateTime']['input'];
+}>;
+
+
+export type CalendarGetMyActualP2pRequestsQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getMyActualP2pRequests: Array<{ __typename?: 'P2pRequest', p2pRequestId: string, startTime: Date, endTime: Date, isOnline: boolean, goalId: string, goalName: string, studentAnswerId: string }> } | null };
 
 export type GetPenaltyReasonsQueryVariables = Exact<{ [key: string]: never; }>;
 
@@ -62172,12 +62515,28 @@ export type CreateCalendarEventFeedbackMutationVariables = Exact<{
 
 export type CreateCalendarEventFeedbackMutation = { __typename?: 'Mutation', student?: { __typename?: 'StudentMutations', createCalendarEventFeedback: { __typename?: 'StudentEventFeedback', id: string, rating: number, comment?: string | null, user: { __typename?: 'User', id: string } } } | null };
 
+export type P2pRequestCardCancelP2pRequestMutationVariables = Exact<{
+  p2pRequestId: Scalars['ID']['input'];
+}>;
+
+
+export type P2pRequestCardCancelP2pRequestMutation = { __typename?: 'Mutation', student?: { __typename?: 'StudentMutations', cancelP2pRequest: boolean } | null };
+
+export type P2pRequestCardCreateP2pRequestMutationVariables = Exact<{
+  startTime: Scalars['DateTime']['input'];
+  isOnline: Scalars['Boolean']['input'];
+  goalId: Scalars['ID']['input'];
+}>;
+
+
+export type P2pRequestCardCreateP2pRequestMutation = { __typename?: 'Mutation', student?: { __typename?: 'StudentMutations', createP2pRequest: { __typename?: 'P2pRequest', p2pRequestId: string } } | null };
+
 export type CalendarGetUploadedAndNotConfirmedVideosQueryVariables = Exact<{
   filledChecklistId: Scalars['ID']['input'];
 }>;
 
 
-export type CalendarGetUploadedAndNotConfirmedVideosQuery = { __typename?: 'Query', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckQueries', getUploadedAndNotConfirmedVideos: Array<{ __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, fileSize: number }> } | null };
+export type CalendarGetUploadedAndNotConfirmedVideosQuery = { __typename?: 'Query', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckQueries', getUploadedAndNotConfirmedVideos: Array<{ __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, fileSize: number }> } | null };
 
 export type CalendarUpdateFilledChecklistWithOnlineReviewMutationVariables = Exact<{
   filledChecklistId: Scalars['ID']['input'];
@@ -62207,7 +62566,7 @@ export type CalendarAddEventMutationVariables = Exact<{
 }>;
 
 
-export type CalendarAddEventMutation = { __typename?: 'Mutation', student?: { __typename?: 'StudentMutations', addEventToTimetable: Array<{ __typename?: 'CalendarEvent', id: string, start: Date, end: Date, description: string, eventType?: string | null, eventCode?: string | null, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, type: TimeSlotTypeEnum, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }>, bookings: Array<{ __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, name: string, location: string, currentStudentsCount: number, maxStudentCount?: number | null, updateDate: Date, goalId: string, goalName: string, isWaitListActive: boolean, isInWaitList?: boolean | null, stopRegisterDate?: Date | null } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', status?: ParticipantEventStatus | null, activityType: string, isMandatory: boolean, isWaitListActive: boolean, isVisible: boolean, activityEventId: string, eventId: string, name: string, beginDate: Date, endDate: Date, isRegistered?: boolean | null, description?: string | null, currentStudentsCount: number, maxStudentCount?: number | null, location: string, updateDate: Date, isInWaitList?: boolean | null, stopRegisterDate?: Date | null, studentFeedback?: { __typename?: 'StudentEventFeedback', id: string, rating: number, comment?: string | null } | null, comments?: Array<{ __typename?: 'ParticipantEventComment', type: ParticipantEventCommentType, createTs: Date, comment: string }> | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, goals: Array<{ __typename?: 'Goal', goalId: string, goalName: string }>, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null }> } | null };
+export type CalendarAddEventMutation = { __typename?: 'Mutation', student?: { __typename?: 'StudentMutations', addEventToTimetable: Array<{ __typename?: 'CalendarEvent', id: string, start: Date, end: Date, description: string, eventType?: string | null, eventCode?: string | null, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, type: TimeSlotTypeEnum, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }>, bookings: Array<{ __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole, eventCode?: string | null }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, name: string, location: string, currentStudentsCount: number, maxStudentCount?: number | null, updateDate: Date, goalId: string, goalName: string, isWaitListActive: boolean, isInWaitList?: boolean | null, stopRegisterDate?: Date | null } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', status?: ParticipantEventStatus | null, activityType: string, isMandatory: boolean, isWaitListActive: boolean, isVisible: boolean, activityEventId: string, eventId: string, name: string, beginDate: Date, endDate: Date, isRegistered?: boolean | null, description?: string | null, currentStudentsCount: number, maxStudentCount?: number | null, location: string, updateDate: Date, isInWaitList?: boolean | null, stopRegisterDate?: Date | null, studentFeedback?: { __typename?: 'StudentEventFeedback', id: string, rating: number, comment?: string | null, isEmpty: boolean } | null, comments?: Array<{ __typename?: 'ParticipantEventComment', type: ParticipantEventCommentType, createTs: Date, comment: string }> | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, goals: Array<{ __typename?: 'Goal', goalId: string, goalName: string }>, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null }> } | null };
 
 export type CalendarChangeEventSlotMutationVariables = Exact<{
   id: Scalars['ID']['input'];
@@ -62216,7 +62575,7 @@ export type CalendarChangeEventSlotMutationVariables = Exact<{
 }>;
 
 
-export type CalendarChangeEventSlotMutation = { __typename?: 'Mutation', student?: { __typename?: 'StudentMutations', changeEventSlot: Array<{ __typename?: 'CalendarEvent', id: string, start: Date, end: Date, description: string, eventType?: string | null, eventCode?: string | null, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, type: TimeSlotTypeEnum, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }>, bookings: Array<{ __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, name: string, location: string, currentStudentsCount: number, maxStudentCount?: number | null, updateDate: Date, goalId: string, goalName: string, isWaitListActive: boolean, isInWaitList?: boolean | null, stopRegisterDate?: Date | null } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', status?: ParticipantEventStatus | null, activityType: string, isMandatory: boolean, isWaitListActive: boolean, isVisible: boolean, activityEventId: string, eventId: string, name: string, beginDate: Date, endDate: Date, isRegistered?: boolean | null, description?: string | null, currentStudentsCount: number, maxStudentCount?: number | null, location: string, updateDate: Date, isInWaitList?: boolean | null, stopRegisterDate?: Date | null, studentFeedback?: { __typename?: 'StudentEventFeedback', id: string, rating: number, comment?: string | null } | null, comments?: Array<{ __typename?: 'ParticipantEventComment', type: ParticipantEventCommentType, createTs: Date, comment: string }> | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, goals: Array<{ __typename?: 'Goal', goalId: string, goalName: string }>, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null }> } | null };
+export type CalendarChangeEventSlotMutation = { __typename?: 'Mutation', student?: { __typename?: 'StudentMutations', changeEventSlot: Array<{ __typename?: 'CalendarEvent', id: string, start: Date, end: Date, description: string, eventType?: string | null, eventCode?: string | null, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, type: TimeSlotTypeEnum, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole }, school?: { __typename?: 'School', shortName: string } | null }>, bookings: Array<{ __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole, eventCode?: string | null }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, name: string, location: string, currentStudentsCount: number, maxStudentCount?: number | null, updateDate: Date, goalId: string, goalName: string, isWaitListActive: boolean, isInWaitList?: boolean | null, stopRegisterDate?: Date | null } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', status?: ParticipantEventStatus | null, activityType: string, isMandatory: boolean, isWaitListActive: boolean, isVisible: boolean, activityEventId: string, eventId: string, name: string, beginDate: Date, endDate: Date, isRegistered?: boolean | null, description?: string | null, currentStudentsCount: number, maxStudentCount?: number | null, location: string, updateDate: Date, isInWaitList?: boolean | null, stopRegisterDate?: Date | null, studentFeedback?: { __typename?: 'StudentEventFeedback', id: string, rating: number, comment?: string | null, isEmpty: boolean } | null, comments?: Array<{ __typename?: 'ParticipantEventComment', type: ParticipantEventCommentType, createTs: Date, comment: string }> | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, goals: Array<{ __typename?: 'Goal', goalId: string, goalName: string }>, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null }> } | null };
 
 export type CalendarDeleteEventSlotMutationVariables = Exact<{
   eventSlotId: Scalars['ID']['input'];
@@ -62264,6 +62623,13 @@ export type CalendarGetMyReviewsQueryVariables = Exact<{
 
 
 export type CalendarGetMyReviewsQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getMyUpcomingBookings: Array<{ __typename?: 'CalendarBooking', id: string, answerId?: string | null, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date }, task?: { __typename?: 'Task', id: string, title: string, assignmentType: TaskAssignmentEnum, goalId?: string | null, goalName: string, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, verifierUser?: { __typename?: 'User', id: string, login?: string | null, avatarUrl: string, userExperience?: { __typename?: 'UserExperience', level: { __typename?: 'ExperienceLevel', id: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null } | null, verifiableStudent?: { __typename?: 'Student', id: string, user: { __typename?: 'User', id: string, login?: string | null, avatarUrl: string, userExperience?: { __typename?: 'UserExperience', level: { __typename?: 'ExperienceLevel', id: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null } } | null, team?: { __typename?: 'ProjectTeamMembers', id: string, teamName: string, teamStatus: TeamStatusEnum, minTeamMemberCount: number, maxTeamMemberCount: number, teamLead: { __typename?: 'User', id: string, avatarUrl: string, login?: string | null, activeSchoolShortName?: string | null, userExperience?: { __typename?: 'UserExperience', cookiesCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', id: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null }, members: Array<{ __typename?: 'User', id: string, avatarUrl: string, login?: string | null, activeSchoolShortName?: string | null, userExperience?: { __typename?: 'UserExperience', cookiesCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', id: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null }>, invitedUsers: Array<{ __typename?: 'User', id: string, avatarUrl: string, login?: string | null, activeSchoolShortName?: string | null, userExperience?: { __typename?: 'UserExperience', cookiesCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', id: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null }> } | null }> } | null };
+
+export type GetEventSlotDateTimeQueryVariables = Exact<{
+  bookingId: Scalars['ID']['input'];
+}>;
+
+
+export type GetEventSlotDateTimeQuery = { __typename?: 'Query', calendarEventS21?: { __typename?: 'CalendarEventS21Queries', getEventSlotDateTime: Date } | null };
 
 export type CompetitionCoalitionGetMyCoalitionMembersQueryVariables = Exact<{
   page?: InputMaybe<PagingInput>;
@@ -62401,6 +62767,41 @@ export type GetCollectionListQueryVariables = Exact<{
 
 export type GetCollectionListQuery = { __typename?: 'Query', selection: { __typename?: 'SelectionQueries', getSelections: Array<{ __typename?: 'Selection', selectionId: string, name: string }> } };
 
+export type StudyProcessFileFragment = { __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null };
+
+export type MarkFileSolutionPendingMutationVariables = Exact<{
+  taskId: Scalars['ID']['input'];
+  initialFileEvents: Array<StudyProcessFileInitialInput> | StudyProcessFileInitialInput;
+}>;
+
+
+export type MarkFileSolutionPendingMutation = { __typename?: 'Mutation', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckMutations', markFileSolutionPending: Array<{ __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null }> } | null };
+
+export type MarkFileSolutionFailedToUploadMutationVariables = Exact<{
+  taskId: Scalars['ID']['input'];
+  errorMessage: Scalars['String']['input'];
+  studyProcessFileId: Scalars['ID']['input'];
+}>;
+
+
+export type MarkFileSolutionFailedToUploadMutation = { __typename?: 'Mutation', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckMutations', markFileSolutionFailedToUpload: { __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null } } | null };
+
+export type MarkFileSolutionUploadCancelledMutationVariables = Exact<{
+  taskId: Scalars['ID']['input'];
+  studyProcessFileId: Scalars['ID']['input'];
+}>;
+
+
+export type MarkFileSolutionUploadCancelledMutation = { __typename?: 'Mutation', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckMutations', markFileSolutionUploadCancelled: { __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null } } | null };
+
+export type MarkFileSolutionUploadedStatusMutationVariables = Exact<{
+  taskId: Scalars['ID']['input'];
+  studyProcessFileIds: Scalars['ID']['input'];
+}>;
+
+
+export type MarkFileSolutionUploadedStatusMutation = { __typename?: 'Mutation', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckMutations', markFileSolutionUploadedStatus: { __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null } } | null };
+
 export type GetProjectAccessGroupIdByStudentAnswerIdQueryVariables = Exact<{
   answerId: Scalars['ID']['input'];
 }>;
@@ -62408,21 +62809,21 @@ export type GetProjectAccessGroupIdByStudentAnswerIdQueryVariables = Exact<{
 
 export type GetProjectAccessGroupIdByStudentAnswerIdQuery = { __typename?: 'Query', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckQueries', getProjectAccessGroupIdByStudentAnswerId: string } | null };
 
-export type GetTaskSolutionTypeQueryVariables = Exact<{
-  taskId: Scalars['ID']['input'];
-}>;
-
-
-export type GetTaskSolutionTypeQuery = { __typename?: 'Query', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckQueries', getTaskSolutionType: TaskSolutionTypeEnum } | null };
-
-export type PlatfSolutionInfoFragment = { __typename?: 'PlatfSolutionInfo', comment?: string | null, files: Array<{ __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null } | null> };
+export type PlatfSolutionInfoFragment = { __typename?: 'PlatfSolutionInfo', comment?: string | null, files: Array<{ __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null } | null> };
 
 export type GetPlatfSolutionInfoQueryVariables = Exact<{
   studentGoalAttemptId: Scalars['ID']['input'];
 }>;
 
 
-export type GetPlatfSolutionInfoQuery = { __typename?: 'Query', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckQueries', getPlatfSolutionInfo?: { __typename?: 'PlatfSolutionInfo', comment?: string | null, files: Array<{ __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null } | null> } | null } | null };
+export type GetPlatfSolutionInfoQuery = { __typename?: 'Query', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckQueries', getPlatfSolutionInfo?: { __typename?: 'PlatfSolutionInfo', comment?: string | null, files: Array<{ __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null } | null> } | null } | null };
+
+export type GetTaskSolutionTypeQueryVariables = Exact<{
+  taskId: Scalars['ID']['input'];
+}>;
+
+
+export type GetTaskSolutionTypeQuery = { __typename?: 'Query', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckQueries', getTaskSolutionType: TaskSolutionTypeEnum } | null };
 
 export type StudentAnswerCommentFragment = { __typename?: 'StudentAnswerComment', studentAnswerId: string, comment: string };
 
@@ -62433,41 +62834,6 @@ export type SaveSolutionCommentMutationVariables = Exact<{
 
 
 export type SaveSolutionCommentMutation = { __typename?: 'Mutation', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckMutations', saveSolutionComment: { __typename?: 'StudentAnswerComment', studentAnswerId: string, comment: string } } | null };
-
-export type StudyProcessFileFragment = { __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null };
-
-export type MarkFileSolutionPendingMutationVariables = Exact<{
-  taskId: Scalars['ID']['input'];
-  initialFileEvents: Array<StudyProcessFileInitialInput> | StudyProcessFileInitialInput;
-}>;
-
-
-export type MarkFileSolutionPendingMutation = { __typename?: 'Mutation', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckMutations', markFileSolutionPending: Array<{ __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null }> } | null };
-
-export type MarkFileSolutionFailedToUploadMutationVariables = Exact<{
-  taskId: Scalars['ID']['input'];
-  errorMessage: Scalars['String']['input'];
-  studyProcessFileId: Scalars['ID']['input'];
-}>;
-
-
-export type MarkFileSolutionFailedToUploadMutation = { __typename?: 'Mutation', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckMutations', markFileSolutionFailedToUpload: { __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null } } | null };
-
-export type MarkFileSolutionUploadCancelledMutationVariables = Exact<{
-  taskId: Scalars['ID']['input'];
-  studyProcessFileId: Scalars['ID']['input'];
-}>;
-
-
-export type MarkFileSolutionUploadCancelledMutation = { __typename?: 'Mutation', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckMutations', markFileSolutionUploadCancelled: { __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null } } | null };
-
-export type MarkFileSolutionUploadedStatusMutationVariables = Exact<{
-  taskId: Scalars['ID']['input'];
-  studyProcessFileIds: Scalars['ID']['input'];
-}>;
-
-
-export type MarkFileSolutionUploadedStatusMutation = { __typename?: 'Mutation', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckMutations', markFileSolutionUploadedStatus: { __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null } } | null };
 
 export type GetPenaltiesCountQueryVariables = Exact<{
   statuses: Array<InputMaybe<Scalars['String']['input']>> | InputMaybe<Scalars['String']['input']>;
@@ -62509,7 +62875,15 @@ export type PublicProfileGetProjectsQueryVariables = Exact<{
 }>;
 
 
-export type PublicProfileGetProjectsQuery = { __typename?: 'Query', school21?: { __typename?: 'School21Queries', getStudentProjectsForPublicProfileByStageGroup: Array<{ __typename?: 'StudentItem', groupName: string, name: string, experience: number, finalPercentage?: number | null, goalId?: number | null, goalStatus?: DisplayedGoalStatus | null, amountAnswers?: number | null, amountReviewedAnswers?: number | null, executionType?: ModuleExecutionType | null, localCourseId?: number | null, courseType?: CourseType | null, displayedCourseStatus?: DisplayedCourseStatus | null } | null> } | null };
+export type PublicProfileGetProjectsQuery = { __typename?: 'Query', school21?: { __typename?: 'School21Queries', getStudentProjectsForPublicProfileV2: Array<{ __typename?: 'StudentItem', groupName: string, name: string, experience: number, finalPercentage?: number | null, goalId?: number | null, goalStatus?: DisplayedGoalStatus | null, amountAnswers?: number | null, amountReviewedAnswers?: number | null, executionType?: ModuleExecutionType | null, localCourseId?: number | null, courseType?: CourseType | null, displayedCourseStatus?: DisplayedCourseStatus | null } | null> } | null };
+
+export type PublicProfileGetProjectsStatusesQueryVariables = Exact<{
+  studentId: Scalars['UUID']['input'];
+  projects: Array<StudentItemEntityInput> | StudentItemEntityInput;
+}>;
+
+
+export type PublicProfileGetProjectsStatusesQuery = { __typename?: 'Query', school21?: { __typename?: 'School21Queries', getStudentProjectStatusesForPublicProfileV2: Array<{ __typename?: 'StudentItem', groupName: string, name: string, experience: number, finalPercentage?: number | null, goalId?: number | null, goalStatus?: DisplayedGoalStatus | null, amountAnswers?: number | null, amountReviewedAnswers?: number | null, executionType?: ModuleExecutionType | null, localCourseId?: number | null, courseType?: CourseType | null, displayedCourseStatus?: DisplayedCourseStatus | null } | null> } | null };
 
 export type PublicProfileLoadStageGroupsQueryVariables = Exact<{
   studentId: Scalars['UUID']['input'];
@@ -62589,13 +62963,13 @@ export type FormChecklistQuestionFragment = { __typename?: 'SectionQuestion', se
 
 export type FormChecklistSectionFragment = { __typename?: 'ChecklistSection', checklistSectionId: string, name: string, description?: string | null, kindQuestionId: string, questionList?: Array<{ __typename?: 'SectionQuestion', sectionQuestionId: string, name: string, description: string, taskAssessmentScale: { __typename?: 'CriterionScale', criterionScaleId: string, type: CriterionScaleType, description: string, scaleWeights: Array<{ __typename?: 'KeyValue', key: string, value: string }> } } | null> | null };
 
-export type OnlineReviewInfoFragment = { __typename?: 'OnlineReview', isOnline: boolean, videos?: Array<{ __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, fileSize: number }> | null };
+export type OnlineReviewInfoFragment = { __typename?: 'OnlineReview', isOnline: boolean, videos?: Array<{ __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, fileSize: number }> | null };
 
 export type FilledChecklistModuleInfoFragment = { __typename?: 'ModuleInfoP2P', moduleName: string, executionType?: ModuleExecutionType | null, periodOfVerification: number };
 
 export type FormChecklistFragment = { __typename?: 'Checklist', introduction?: string | null, guidelines: string, quickActions: Array<QuickAction>, availableLanguages?: Array<LanguageCodeType> | null, languageCode: LanguageCodeType, sectionList: Array<{ __typename?: 'ChecklistSection', checklistSectionId: string, name: string, description?: string | null, kindQuestionId: string, questionList?: Array<{ __typename?: 'SectionQuestion', sectionQuestionId: string, name: string, description: string, taskAssessmentScale: { __typename?: 'CriterionScale', criterionScaleId: string, type: CriterionScaleType, description: string, scaleWeights: Array<{ __typename?: 'KeyValue', key: string, value: string }> } } | null> | null }> };
 
-export type ChecklistSolutionInfoFragment = { __typename?: 'SolutionInfo', solutionType: TaskSolutionTypeEnum, gitlabSolutionInfo?: { __typename?: 'GitlabSolutionInfo', gitlabLink: { __typename?: 'GitlabLink', id: number, sshLink: string, httpsLink: string } } | null, platfSolutionInfo?: { __typename?: 'PlatfSolutionInfo', comment?: string | null, files: Array<{ __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, creatorLogin: string, fileExtension: string, fileSize?: number | null } | null> } | null };
+export type ChecklistSolutionInfoFragment = { __typename?: 'SolutionInfo', solutionType: TaskSolutionTypeEnum, gitlabSolutionInfo?: { __typename?: 'GitlabSolutionInfo', gitlabLink: { __typename?: 'GitlabLink', id: number, sshLink: string, httpsLink: string } } | null, platfSolutionInfo?: { __typename?: 'PlatfSolutionInfo', comment?: string | null, files: Array<{ __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null } | null> } | null };
 
 export type GetFilledChecklistQueryVariables = Exact<{
   filledChecklistId: Scalars['ID']['input'];
@@ -62603,7 +62977,7 @@ export type GetFilledChecklistQueryVariables = Exact<{
 }>;
 
 
-export type GetFilledChecklistQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getP2pInfo: { __typename?: 'FilledChecklist', id: string, solutionInfo?: { __typename?: 'SolutionInfo', solutionType: TaskSolutionTypeEnum, gitlabSolutionInfo?: { __typename?: 'GitlabSolutionInfo', gitlabLink: { __typename?: 'GitlabLink', id: number, sshLink: string, httpsLink: string } } | null, platfSolutionInfo?: { __typename?: 'PlatfSolutionInfo', comment?: string | null, files: Array<{ __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, creatorLogin: string, fileExtension: string, fileSize?: number | null } | null> } | null } | null, checklist: { __typename?: 'Checklist', introduction?: string | null, guidelines: string, quickActions: Array<QuickAction>, availableLanguages?: Array<LanguageCodeType> | null, languageCode: LanguageCodeType, sectionList: Array<{ __typename?: 'ChecklistSection', checklistSectionId: string, name: string, description?: string | null, kindQuestionId: string, questionList?: Array<{ __typename?: 'SectionQuestion', sectionQuestionId: string, name: string, description: string, taskAssessmentScale: { __typename?: 'CriterionScale', criterionScaleId: string, type: CriterionScaleType, description: string, scaleWeights: Array<{ __typename?: 'KeyValue', key: string, value: string }> } } | null> | null }> }, moduleInfoP2P?: { __typename?: 'ModuleInfoP2P', moduleName: string, executionType?: ModuleExecutionType | null, periodOfVerification: number } | null, progressCheckInfo?: { __typename?: 'ProgressCheckInfo', reviewUserCount: number, reviewUserCountExecuted: number } | null, verifiableUsers?: { __typename?: 'VerifiableUsers', teamWithMembers?: { __typename?: 'TeamWithMembers', team: { __typename?: 'Team', id: string, name: string }, members: Array<{ __typename?: 'TeamMember', role: TeamRole, user?: { __typename?: 'User', id: string, avatarUrl: string, login?: string | null, activeSchoolShortName?: string | null, userExperience?: { __typename?: 'UserExperience', cookiesCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', id: number, levelCode: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null } | null }> } | null, user?: { __typename?: 'User', id: string, avatarUrl: string, login?: string | null, activeSchoolShortName?: string | null, userExperience?: { __typename?: 'UserExperience', cookiesCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', id: number, levelCode: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null } | null } | null, onlineReview?: { __typename?: 'OnlineReview', isOnline: boolean, videos?: Array<{ __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, fileSize: number }> | null } | null } } | null };
+export type GetFilledChecklistQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getP2pInfo: { __typename?: 'FilledChecklist', id: string, solutionInfo?: { __typename?: 'SolutionInfo', solutionType: TaskSolutionTypeEnum, gitlabSolutionInfo?: { __typename?: 'GitlabSolutionInfo', gitlabLink: { __typename?: 'GitlabLink', id: number, sshLink: string, httpsLink: string } } | null, platfSolutionInfo?: { __typename?: 'PlatfSolutionInfo', comment?: string | null, files: Array<{ __typename?: 'StudyProcessFile', studyProcessFileId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, creatorLogin: string, fileExtension: string, fileSize?: number | null } | null> } | null } | null, checklist: { __typename?: 'Checklist', introduction?: string | null, guidelines: string, quickActions: Array<QuickAction>, availableLanguages?: Array<LanguageCodeType> | null, languageCode: LanguageCodeType, sectionList: Array<{ __typename?: 'ChecklistSection', checklistSectionId: string, name: string, description?: string | null, kindQuestionId: string, questionList?: Array<{ __typename?: 'SectionQuestion', sectionQuestionId: string, name: string, description: string, taskAssessmentScale: { __typename?: 'CriterionScale', criterionScaleId: string, type: CriterionScaleType, description: string, scaleWeights: Array<{ __typename?: 'KeyValue', key: string, value: string }> } } | null> | null }> }, moduleInfoP2P?: { __typename?: 'ModuleInfoP2P', moduleName: string, executionType?: ModuleExecutionType | null, periodOfVerification: number } | null, progressCheckInfo?: { __typename?: 'ProgressCheckInfo', reviewUserCount: number, reviewUserCountExecuted: number } | null, verifiableUsers?: { __typename?: 'VerifiableUsers', teamWithMembers?: { __typename?: 'TeamWithMembers', team: { __typename?: 'Team', id: string, name: string }, members: Array<{ __typename?: 'TeamMember', role: TeamRole, user?: { __typename?: 'User', id: string, avatarUrl: string, login?: string | null, activeSchoolShortName?: string | null, userExperience?: { __typename?: 'UserExperience', cookiesCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', id: number, levelCode: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null } | null }> } | null, user?: { __typename?: 'User', id: string, avatarUrl: string, login?: string | null, activeSchoolShortName?: string | null, userExperience?: { __typename?: 'UserExperience', cookiesCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', id: number, levelCode: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null } | null } | null, onlineReview?: { __typename?: 'OnlineReview', isOnline: boolean, videos?: Array<{ __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, fileSize: number }> | null } | null } } | null };
 
 export type SaveFilledChecklistMutationVariables = Exact<{
   filledChecklistInput: ChecklistFilledInput;
@@ -62685,7 +63059,7 @@ export type ProjectMapGetStudentStageGroupsQueryVariables = Exact<{
 }>;
 
 
-export type ProjectMapGetStudentStageGroupsQuery = { __typename?: 'Query', school21?: { __typename?: 'School21Queries', loadStudentStageGroups?: Array<{ __typename?: 'StageGroupS21Student', stageGroupS21: { __typename?: 'StageGroupS21', waveId: number, waveName: string, eduForm: string, active?: boolean | null } } | null> | null } | null };
+export type ProjectMapGetStudentStageGroupsQuery = { __typename?: 'Query', school21?: { __typename?: 'School21Queries', loadStudentStageGroups?: Array<{ __typename?: 'StageGroupS21Student', studentId: string, stageGroupStudentId: string, stageGroupS21: { __typename?: 'StageGroupS21', waveId: number, waveName: string, eduForm: string, active?: boolean | null } } | null> | null } | null };
 
 export type ProjectMapGetStudentStateGraphNodeQueryVariables = Exact<{
   graphNode: Scalars['JsonNode']['input'];
@@ -62752,7 +63126,7 @@ export type UpdateP2POnlineTypeMutationVariables = Exact<{
 }>;
 
 
-export type UpdateP2POnlineTypeMutation = { __typename?: 'Mutation', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckMutations', enableOnlineP2pCheck: { __typename?: 'CalendarBooking', id: string } } | null };
+export type UpdateP2POnlineTypeMutation = { __typename?: 'Mutation', sc21StudentTaskCheck?: { __typename?: 'SC21StudentTaskCheckMutations', enableOnlineP2pCheck: { __typename?: 'CalendarBooking', id: string, answerId?: string | null, eventSlotId: string, bookingStatus: BookingStatusEnum, isOnline: boolean, vcLinkUrl?: string | null, task?: { __typename?: 'Task', id: string, goalId?: string | null, goalName: string, assignmentType: TaskAssignmentEnum, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number } } | null, eventSlot: { __typename?: 'CalendarTimeSlot', id: string, start: Date, end: Date, event: { __typename?: 'CalendarEvent', eventUserRole: CalendarEventUserRole, eventCode?: string | null }, school?: { __typename?: 'School', shortName: string } | null }, verifierUser?: { __typename?: 'User', id: string, login?: string | null } | null, verifiableInfo?: { __typename?: 'VerifiableInfo', verifiableStudents: Array<{ __typename?: 'VerifiableStudent', userId: string, login: string, avatarUrl: string, levelCode: number, isTeamLead?: boolean | null, cookiesCount: number, codeReviewPoints: number, school: { __typename?: 'School', shortName: string } }>, team?: { __typename?: 'Team', name: string } | null } | null, additionalChecklist?: { __typename?: 'AdditionalChecklist', filledChecklistId?: string | null, filledChecklistStatusRecordingEnum?: FilledChecklistStatusRecordingEnum | null } | null } } | null };
 
 export type MarkAbsenceAtP2PMutationVariables = Exact<{
   bookingId: Scalars['ID']['input'];
@@ -62863,17 +63237,17 @@ export type GetProjectGitlabInfoQuery = { __typename?: 'Query', student?: { __ty
 
 export type EvaluationFeedbackFragment = { __typename?: 'ReviewFeedback', id: string, comment: string, filledChecklist: { __typename?: 'FilledChecklist', id: string }, reviewFeedbackCategoryValues: Array<{ __typename?: 'ReviewFeedbackCategoryValue', feedbackCategory: FeedbackCategoryEnum, feedbackValue: FeedbackCategoryValueEnum, id: string } | null> };
 
-export type ChecklistFragment = { __typename?: 'FilledChecklist', id: string, checklistId: string, endTimeCheck?: Date | null, startTimeCheck: Date, comment?: string | null, receivedPoint?: number | null, receivedPercentage?: number | null, quickAction?: QuickAction | null, checkType?: FilledChecklistCheckType | null, reviewer: { __typename?: 'User', avatarUrl: string, login?: string | null, businessAdminRoles?: Array<{ __typename?: 'BusinessAdminRole', id: string, school: { __typename?: 'SafeSchool', id: string, organizationType: string } }> | null }, reviewFeedback?: { __typename?: 'ReviewFeedback', id: string, comment: string, filledChecklist: { __typename?: 'FilledChecklist', id: string }, reviewFeedbackCategoryValues: Array<{ __typename?: 'ReviewFeedbackCategoryValue', feedbackCategory: FeedbackCategoryEnum, feedbackValue: FeedbackCategoryValueEnum, id: string } | null> } | null, onlineReview?: { __typename?: 'OnlineReview', isOnline: boolean, videos?: Array<{ __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, fileSize: number }> | null } | null };
+export type ChecklistFragment = { __typename?: 'FilledChecklist', id: string, checklistId: string, endTimeCheck?: Date | null, startTimeCheck: Date, comment?: string | null, receivedPoint?: number | null, receivedPercentage?: number | null, quickAction?: QuickAction | null, checkType?: FilledChecklistCheckType | null, reviewer: { __typename?: 'User', avatarUrl: string, login?: string | null, businessAdminRoles?: Array<{ __typename?: 'BusinessAdminRole', id: string, school: { __typename?: 'SafeSchool', id: string, organizationType: string } }> | null }, reviewFeedback?: { __typename?: 'ReviewFeedback', id: string, comment: string, filledChecklist: { __typename?: 'FilledChecklist', id: string }, reviewFeedbackCategoryValues: Array<{ __typename?: 'ReviewFeedbackCategoryValue', feedbackCategory: FeedbackCategoryEnum, feedbackValue: FeedbackCategoryValueEnum, id: string } | null> } | null, onlineReview?: { __typename?: 'OnlineReview', isOnline: boolean, videos?: Array<{ __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, fileSize: number }> | null } | null };
 
 export type AttemptTeamMemberFragment = { __typename?: 'User', id: string, avatarUrl: string, login?: string | null, userExperience?: { __typename?: 'UserExperience', cookiesCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', id: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null };
 
-export type P2PEvaluationFragment = { __typename?: 'P2PEvaluationInfo', status: ProjectEvaluationStatus, checklist?: { __typename?: 'FilledChecklist', id: string, checklistId: string, endTimeCheck?: Date | null, startTimeCheck: Date, comment?: string | null, receivedPoint?: number | null, receivedPercentage?: number | null, quickAction?: QuickAction | null, checkType?: FilledChecklistCheckType | null, reviewer: { __typename?: 'User', avatarUrl: string, login?: string | null, businessAdminRoles?: Array<{ __typename?: 'BusinessAdminRole', id: string, school: { __typename?: 'SafeSchool', id: string, organizationType: string } }> | null }, reviewFeedback?: { __typename?: 'ReviewFeedback', id: string, comment: string, filledChecklist: { __typename?: 'FilledChecklist', id: string }, reviewFeedbackCategoryValues: Array<{ __typename?: 'ReviewFeedbackCategoryValue', feedbackCategory: FeedbackCategoryEnum, feedbackValue: FeedbackCategoryValueEnum, id: string } | null> } | null, onlineReview?: { __typename?: 'OnlineReview', isOnline: boolean, videos?: Array<{ __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, fileSize: number }> | null } | null } | null };
+export type P2PEvaluationFragment = { __typename?: 'P2PEvaluationInfo', status: ProjectEvaluationStatus, checklist?: { __typename?: 'FilledChecklist', id: string, checklistId: string, endTimeCheck?: Date | null, startTimeCheck: Date, comment?: string | null, receivedPoint?: number | null, receivedPercentage?: number | null, quickAction?: QuickAction | null, checkType?: FilledChecklistCheckType | null, reviewer: { __typename?: 'User', avatarUrl: string, login?: string | null, businessAdminRoles?: Array<{ __typename?: 'BusinessAdminRole', id: string, school: { __typename?: 'SafeSchool', id: string, organizationType: string } }> | null }, reviewFeedback?: { __typename?: 'ReviewFeedback', id: string, comment: string, filledChecklist: { __typename?: 'FilledChecklist', id: string }, reviewFeedbackCategoryValues: Array<{ __typename?: 'ReviewFeedbackCategoryValue', feedbackCategory: FeedbackCategoryEnum, feedbackValue: FeedbackCategoryValueEnum, id: string } | null> } | null, onlineReview?: { __typename?: 'OnlineReview', isOnline: boolean, videos?: Array<{ __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, fileSize: number }> | null } | null } | null };
 
 export type AttemptTeamWithMembersFragment = { __typename?: 'TeamWithMembers', team: { __typename?: 'Team', id: string, name: string }, members: Array<{ __typename?: 'TeamMember', role: TeamRole, user?: { __typename?: 'User', id: string, avatarUrl: string, login?: string | null, userExperience?: { __typename?: 'UserExperience', cookiesCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', id: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null } | null }> };
 
 export type AtemptResultFragment = { __typename?: 'StudentGoalAttempt', finalPointProject: number, finalPercentageProject: number, resultModuleCompletion: ResultModuleCompletion, resultDate: Date };
 
-export type ProjectAttemptEvaluations_V1Fragment = { __typename?: 'ProjectAttemptEvaluationsInfo_V1', studentAnswerId?: string | null, studentGoalAttemptId?: string | null, attemptStatus?: StudentGoalAttemptStatus | null, attemptResult?: { __typename?: 'StudentGoalAttempt', finalPointProject: number, finalPercentageProject: number, resultModuleCompletion: ResultModuleCompletion, resultDate: Date } | null, team?: { __typename?: 'TeamWithMembers', team: { __typename?: 'Team', id: string, name: string }, members: Array<{ __typename?: 'TeamMember', role: TeamRole, user?: { __typename?: 'User', id: string, avatarUrl: string, login?: string | null, userExperience?: { __typename?: 'UserExperience', cookiesCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', id: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null } | null }> } | null, p2p: Array<{ __typename?: 'P2PEvaluationInfo', status: ProjectEvaluationStatus, checklist?: { __typename?: 'FilledChecklist', id: string, checklistId: string, endTimeCheck?: Date | null, startTimeCheck: Date, comment?: string | null, receivedPoint?: number | null, receivedPercentage?: number | null, quickAction?: QuickAction | null, checkType?: FilledChecklistCheckType | null, reviewer: { __typename?: 'User', avatarUrl: string, login?: string | null, businessAdminRoles?: Array<{ __typename?: 'BusinessAdminRole', id: string, school: { __typename?: 'SafeSchool', id: string, organizationType: string } }> | null }, reviewFeedback?: { __typename?: 'ReviewFeedback', id: string, comment: string, filledChecklist: { __typename?: 'FilledChecklist', id: string }, reviewFeedbackCategoryValues: Array<{ __typename?: 'ReviewFeedbackCategoryValue', feedbackCategory: FeedbackCategoryEnum, feedbackValue: FeedbackCategoryValueEnum, id: string } | null> } | null, onlineReview?: { __typename?: 'OnlineReview', isOnline: boolean, videos?: Array<{ __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, fileSize: number }> | null } | null } | null }>, auto: { __typename?: 'AutoEvaluationInfo', status: ProjectEvaluationStatus, receivedPercentage: number, endTimeCheck?: Date | null, resultInfo?: string | null }, codeReview: { __typename?: 'StudentCodeReviewResult', averageMark?: CodeReviewMark | null, studentCodeReviews: Array<{ __typename?: 'StudentCodeReview', finalMark?: boolean | null, markTime?: Date | null, reviewerCommentsCount?: number | null, user: { __typename?: 'User', avatarUrl: string, login?: string | null } }> } };
+export type ProjectAttemptEvaluations_V1Fragment = { __typename?: 'ProjectAttemptEvaluationsInfo_V1', studentAnswerId?: string | null, studentGoalAttemptId?: string | null, attemptStatus?: StudentGoalAttemptStatus | null, attemptResult?: { __typename?: 'StudentGoalAttempt', finalPointProject: number, finalPercentageProject: number, resultModuleCompletion: ResultModuleCompletion, resultDate: Date } | null, team?: { __typename?: 'TeamWithMembers', team: { __typename?: 'Team', id: string, name: string }, members: Array<{ __typename?: 'TeamMember', role: TeamRole, user?: { __typename?: 'User', id: string, avatarUrl: string, login?: string | null, userExperience?: { __typename?: 'UserExperience', cookiesCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', id: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null } | null }> } | null, p2p: Array<{ __typename?: 'P2PEvaluationInfo', status: ProjectEvaluationStatus, checklist?: { __typename?: 'FilledChecklist', id: string, checklistId: string, endTimeCheck?: Date | null, startTimeCheck: Date, comment?: string | null, receivedPoint?: number | null, receivedPercentage?: number | null, quickAction?: QuickAction | null, checkType?: FilledChecklistCheckType | null, reviewer: { __typename?: 'User', avatarUrl: string, login?: string | null, businessAdminRoles?: Array<{ __typename?: 'BusinessAdminRole', id: string, school: { __typename?: 'SafeSchool', id: string, organizationType: string } }> | null }, reviewFeedback?: { __typename?: 'ReviewFeedback', id: string, comment: string, filledChecklist: { __typename?: 'FilledChecklist', id: string }, reviewFeedbackCategoryValues: Array<{ __typename?: 'ReviewFeedbackCategoryValue', feedbackCategory: FeedbackCategoryEnum, feedbackValue: FeedbackCategoryValueEnum, id: string } | null> } | null, onlineReview?: { __typename?: 'OnlineReview', isOnline: boolean, videos?: Array<{ __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, fileSize: number }> | null } | null } | null }>, auto: { __typename?: 'AutoEvaluationInfo', status: ProjectEvaluationStatus, receivedPercentage: number, endTimeCheck?: Date | null, resultInfo?: string | null }, codeReview: { __typename?: 'StudentCodeReviewResult', averageMark?: CodeReviewMark | null, studentCodeReviews: Array<{ __typename?: 'StudentCodeReview', finalMark?: boolean | null, markTime?: Date | null, reviewerCommentsCount?: number | null, user: { __typename?: 'User', avatarUrl: string, login?: string | null } }> } };
 
 export type GetProjectAttemptEvaluationsInfoQueryVariables = Exact<{
   goalId: Scalars['ID']['input'];
@@ -62881,7 +63255,7 @@ export type GetProjectAttemptEvaluationsInfoQueryVariables = Exact<{
 }>;
 
 
-export type GetProjectAttemptEvaluationsInfoQuery = { __typename?: 'Query', school21?: { __typename?: 'School21Queries', getProjectAttemptEvaluationsInfo_V1: Array<{ __typename?: 'ProjectAttemptEvaluationsInfo_V1', studentAnswerId?: string | null, studentGoalAttemptId?: string | null, attemptStatus?: StudentGoalAttemptStatus | null, attemptResult?: { __typename?: 'StudentGoalAttempt', finalPointProject: number, finalPercentageProject: number, resultModuleCompletion: ResultModuleCompletion, resultDate: Date } | null, team?: { __typename?: 'TeamWithMembers', team: { __typename?: 'Team', id: string, name: string }, members: Array<{ __typename?: 'TeamMember', role: TeamRole, user?: { __typename?: 'User', id: string, avatarUrl: string, login?: string | null, userExperience?: { __typename?: 'UserExperience', cookiesCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', id: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null } | null }> } | null, p2p: Array<{ __typename?: 'P2PEvaluationInfo', status: ProjectEvaluationStatus, checklist?: { __typename?: 'FilledChecklist', id: string, checklistId: string, endTimeCheck?: Date | null, startTimeCheck: Date, comment?: string | null, receivedPoint?: number | null, receivedPercentage?: number | null, quickAction?: QuickAction | null, checkType?: FilledChecklistCheckType | null, reviewer: { __typename?: 'User', avatarUrl: string, login?: string | null, businessAdminRoles?: Array<{ __typename?: 'BusinessAdminRole', id: string, school: { __typename?: 'SafeSchool', id: string, organizationType: string } }> | null }, reviewFeedback?: { __typename?: 'ReviewFeedback', id: string, comment: string, filledChecklist: { __typename?: 'FilledChecklist', id: string }, reviewFeedbackCategoryValues: Array<{ __typename?: 'ReviewFeedbackCategoryValue', feedbackCategory: FeedbackCategoryEnum, feedbackValue: FeedbackCategoryValueEnum, id: string } | null> } | null, onlineReview?: { __typename?: 'OnlineReview', isOnline: boolean, videos?: Array<{ __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, fileSize: number }> | null } | null } | null }>, auto: { __typename?: 'AutoEvaluationInfo', status: ProjectEvaluationStatus, receivedPercentage: number, endTimeCheck?: Date | null, resultInfo?: string | null }, codeReview: { __typename?: 'StudentCodeReviewResult', averageMark?: CodeReviewMark | null, studentCodeReviews: Array<{ __typename?: 'StudentCodeReview', finalMark?: boolean | null, markTime?: Date | null, reviewerCommentsCount?: number | null, user: { __typename?: 'User', avatarUrl: string, login?: string | null } }> } }> } | null };
+export type GetProjectAttemptEvaluationsInfoQuery = { __typename?: 'Query', school21?: { __typename?: 'School21Queries', getProjectAttemptEvaluationsInfo_V1: Array<{ __typename?: 'ProjectAttemptEvaluationsInfo_V1', studentAnswerId?: string | null, studentGoalAttemptId?: string | null, attemptStatus?: StudentGoalAttemptStatus | null, attemptResult?: { __typename?: 'StudentGoalAttempt', finalPointProject: number, finalPercentageProject: number, resultModuleCompletion: ResultModuleCompletion, resultDate: Date } | null, team?: { __typename?: 'TeamWithMembers', team: { __typename?: 'Team', id: string, name: string }, members: Array<{ __typename?: 'TeamMember', role: TeamRole, user?: { __typename?: 'User', id: string, avatarUrl: string, login?: string | null, userExperience?: { __typename?: 'UserExperience', cookiesCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', id: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null } | null }> } | null, p2p: Array<{ __typename?: 'P2PEvaluationInfo', status: ProjectEvaluationStatus, checklist?: { __typename?: 'FilledChecklist', id: string, checklistId: string, endTimeCheck?: Date | null, startTimeCheck: Date, comment?: string | null, receivedPoint?: number | null, receivedPercentage?: number | null, quickAction?: QuickAction | null, checkType?: FilledChecklistCheckType | null, reviewer: { __typename?: 'User', avatarUrl: string, login?: string | null, businessAdminRoles?: Array<{ __typename?: 'BusinessAdminRole', id: string, school: { __typename?: 'SafeSchool', id: string, organizationType: string } }> | null }, reviewFeedback?: { __typename?: 'ReviewFeedback', id: string, comment: string, filledChecklist: { __typename?: 'FilledChecklist', id: string }, reviewFeedbackCategoryValues: Array<{ __typename?: 'ReviewFeedbackCategoryValue', feedbackCategory: FeedbackCategoryEnum, feedbackValue: FeedbackCategoryValueEnum, id: string } | null> } | null, onlineReview?: { __typename?: 'OnlineReview', isOnline: boolean, videos?: Array<{ __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, fileSize: number }> | null } | null } | null }>, auto: { __typename?: 'AutoEvaluationInfo', status: ProjectEvaluationStatus, receivedPercentage: number, endTimeCheck?: Date | null, resultInfo?: string | null }, codeReview: { __typename?: 'StudentCodeReviewResult', averageMark?: CodeReviewMark | null, studentCodeReviews: Array<{ __typename?: 'StudentCodeReview', finalMark?: boolean | null, markTime?: Date | null, reviewerCommentsCount?: number | null, user: { __typename?: 'User', avatarUrl: string, login?: string | null } }> } }> } | null };
 
 export type CreateFeedbackOnEvaluationMutationVariables = Exact<{
   reviewFeedbackInput: ReviewFeedbackInput;
@@ -62905,7 +63279,7 @@ export type GetProjectInfoQueryVariables = Exact<{
 }>;
 
 
-export type GetProjectInfoQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getModuleById: { __typename?: 'StudentModule', id: string, moduleTitle: string, finalPercentage?: number | null, finalPoint?: number | null, goalExecutionType?: ModuleExecutionType | null, displayedGoalStatus?: DisplayedGoalStatus | null, accessBeforeStartProgress?: boolean | null, resultModuleCompletion?: ResultModuleCompletion | null, finishedExecutionDateByScheduler?: Date | null, durationFromStageSubjectGroupPlan?: number | null, currentAttemptNumber?: number | null, isDeadlineFree?: boolean | null, isRetryAvailable: boolean, localCourseId?: string | null, courseBaseParameters?: { __typename?: 'CourseBaseParameters', isGradedCourse: boolean } | null, teamSettings?: { __typename?: 'TeamSettings', teamCreateOption: TeamCreateOptionEnum, minAmountMember: number, maxAmountMember: number, enableSurrenderTeam?: boolean | null } | null, studyModule: { __typename?: 'StudyModule', id: string, idea: string, duration: number, goalPoint?: number | null, retrySettings?: { __typename?: 'ModuleAttemptsSettings', maxModuleAttempts?: number | null, isUnlimitedAttempts: boolean } | null, levels: Array<{ __typename?: 'StudyModuleLevel', id: string, goalElements: Array<{ __typename?: 'StudyModuleGoalElement', id: string, tasks: Array<{ __typename?: 'Task', id: string, taskId: string }> }> }> }, currentTask?: { __typename?: 'StudentTask', id: string, taskId: string, task: { __typename?: 'Task', id: string, assignmentType: TaskAssignmentEnum, taskSolutionType?: TaskSolutionTypeEnum | null, checkTypes: Array<TaskCheckEnum>, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number, maxCodeReviewCount: number, codeReviewCost: number, ciCdMode: GitlabCiCdType } }, lastAnswer?: { __typename?: 'StudentAnswer', id: string } | null, teamSettings?: { __typename?: 'TeamSettings', teamCreateOption: TeamCreateOptionEnum, minAmountMember: number, maxAmountMember: number, enableSurrenderTeam?: boolean | null } | null } | null }, getModuleCoverInformation?: { __typename?: 'ModuleCoverInformation', isOwnStudentTimeline?: boolean | null, softSkills: Array<{ __typename?: 'SoftSkillPoint', softSkillId: number, softSkillName: string, totalPower: number, maxPower: number, currentUserPower: number, achievedUserPower?: number | null, teamRole?: TeamRole | null }>, timeline: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, status: TimelineItemStatus, start?: Date | null, end?: Date | null, children?: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, elementType?: TimelineElementEnum | null, status: TimelineItemStatus, start?: Date | null, end?: Date | null, order?: number | null } | null> | null }> } | null, getP2PChecksInfo?: { __typename?: 'P2PChecksInfo', cookiesCount: number, periodOfVerification: number, projectReviewsInfo: { __typename?: 'ProjectReviewsInfo', reviewByStudentCount: number, relevantReviewByStudentsCount: number, reviewByInspectionStaffCount: number, relevantReviewByInspectionStaffCount: number } } | null, getStudentCodeReviewByGoalId: { __typename?: 'StudentCodeReviewsWithCountRound', countRound1: number, countRound2: number, codeReviewsInfo?: { __typename?: 'CodeReviewChecksInfo', maxCodeReviewCount: number, codeReviewDuration: number, codeReviewCost: number } | null } } | null };
+export type GetProjectInfoQuery = { __typename?: 'Query', student?: { __typename?: 'StudentQueries', getModuleById: { __typename?: 'StudentModule', id: string, moduleTitle: string, finalPercentage?: number | null, finalPoint?: number | null, goalExecutionType?: ModuleExecutionType | null, displayedGoalStatus?: DisplayedGoalStatus | null, accessBeforeStartProgress?: boolean | null, resultModuleCompletion?: ResultModuleCompletion | null, finishedExecutionDateByScheduler?: Date | null, durationFromStageSubjectGroupPlan?: number | null, currentAttemptNumber?: number | null, isDeadlineFree?: boolean | null, isRetryAvailable: boolean, localCourseId?: string | null, courseBaseParameters?: { __typename?: 'CourseBaseParameters', isGradedCourse: boolean } | null, teamSettings?: { __typename?: 'TeamSettings', teamCreateOption: TeamCreateOptionEnum, minAmountMember: number, maxAmountMember: number, enableSurrenderTeam?: boolean | null } | null, studyModule: { __typename?: 'StudyModule', id: string, idea: string, duration: number, goalPoint?: number | null, retrySettings?: { __typename?: 'ModuleAttemptsSettings', maxModuleAttempts?: number | null, isUnlimitedAttempts: boolean } | null, levels: Array<{ __typename?: 'StudyModuleLevel', id: string, goalElements: Array<{ __typename?: 'StudyModuleGoalElement', id: string, tasks: Array<{ __typename?: 'Task', id: string, taskId: string }> }> }> }, currentTask?: { __typename?: 'StudentTask', id: string, taskId: string, task: { __typename?: 'Task', id: string, assignmentType: TaskAssignmentEnum, taskSolutionType?: TaskSolutionTypeEnum | null, checkTypes: Array<TaskCheckEnum>, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number, maxCodeReviewCount: number, codeReviewCost: number, ciCdMode: GitlabCiCdType } }, lastAnswer?: { __typename?: 'StudentAnswer', id: string } | null, teamSettings?: { __typename?: 'TeamSettings', teamCreateOption: TeamCreateOptionEnum, minAmountMember: number, maxAmountMember: number, enableSurrenderTeam?: boolean | null } | null } | null }, getModuleCoverInformation?: { __typename?: 'ModuleCoverInformation', isOwnStudentTimeline?: boolean | null, softSkills: Array<{ __typename?: 'SoftSkillPoint', softSkillId: number, softSkillName: string, totalPower: number, maxPower: number, currentUserPower: number, achievedUserPower?: number | null, teamRole?: TeamRole | null }>, timeline: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, status: TimelineItemStatus, start?: Date | null, end?: Date | null, children?: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, elementType?: TimelineElementEnum | null, status: TimelineItemStatus, start?: Date | null, end?: Date | null, order?: number | null } | null> | null }> } | null, getP2PChecksInfo?: { __typename?: 'P2PChecksInfo', cookiesCount: number, periodOfVerification: number, projectReviewsInfo: { __typename?: 'ProjectReviewsInfo', reviewByStudentCount: number, relevantReviewByStudentsCount: number, reviewByInspectionStaffCount: number, relevantReviewByInspectionStaffCount: number, p2pRequirementStatus: P2pRequirementStatus } } | null, getStudentCodeReviewByGoalId: { __typename?: 'StudentCodeReviewsWithCountRound', countRound1: number, countRound2: number, codeReviewsInfo?: { __typename?: 'CodeReviewChecksInfo', maxCodeReviewCount: number, codeReviewDuration: number, codeReviewCost: number } | null } } | null };
 
 export type MediatekaGetContentItemQueryVariables = Exact<{
   itemIds: Array<Scalars['ID']['input']> | Scalars['ID']['input'];
@@ -62919,7 +63293,7 @@ export type GetStageInfoQueryVariables = Exact<{ [key: string]: never; }>;
 
 export type GetStageInfoQuery = { __typename?: 'Query', user?: { __typename?: 'UserQueries', getCurrentUser: { __typename?: 'User', id: string, studentRoles?: Array<{ __typename?: 'StudentRole', status: RoleStatus, school: { __typename?: 'SafeSchool', organizationType: string }, stageGroup?: { __typename?: 'StageGroup', name: string, stage: number, isActive: boolean, classSubjects?: Array<{ __typename?: 'ClassSubject', stage: { __typename?: 'Stage', name: string } }> | null } | null }> | null }, getAllStagesTenantAware: Array<{ __typename?: 'Stage', id: string, name: string }> } | null };
 
-export type OnlineReviewVideoInfoFragment = { __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, fileSize: number };
+export type OnlineReviewVideoInfoFragment = { __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, fileSize: number };
 
 export type MarkOnlineReviewVideoUploadedMutationVariables = Exact<{
   filledChecklistId: Scalars['ID']['input'];
@@ -62927,7 +63301,7 @@ export type MarkOnlineReviewVideoUploadedMutationVariables = Exact<{
 }>;
 
 
-export type MarkOnlineReviewVideoUploadedMutation = { __typename?: 'Mutation', school21?: { __typename?: 'School21Mutations', markP2pCheckVideoUploaded: { __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, fileSize: number } } | null };
+export type MarkOnlineReviewVideoUploadedMutation = { __typename?: 'Mutation', school21?: { __typename?: 'School21Mutations', markP2pCheckVideoUploaded: { __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, fileSize: number } } | null };
 
 export type MarkFilesPendingMutationVariables = Exact<{
   filledChecklistId: Scalars['ID']['input'];
@@ -62935,7 +63309,7 @@ export type MarkFilesPendingMutationVariables = Exact<{
 }>;
 
 
-export type MarkFilesPendingMutation = { __typename?: 'Mutation', school21?: { __typename?: 'School21Mutations', markFilesPending: Array<{ __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, fileSize: number }> } | null };
+export type MarkFilesPendingMutation = { __typename?: 'Mutation', school21?: { __typename?: 'School21Mutations', markFilesPending: Array<{ __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, fileSize: number }> } | null };
 
 export type MarkOnlineReviewVideoFailedToUploadMutationVariables = Exact<{
   filledChecklistId: Scalars['ID']['input'];
@@ -62944,7 +63318,7 @@ export type MarkOnlineReviewVideoFailedToUploadMutationVariables = Exact<{
 }>;
 
 
-export type MarkOnlineReviewVideoFailedToUploadMutation = { __typename?: 'Mutation', school21?: { __typename?: 'School21Mutations', markP2pCheckVideoFailedToUpload: { __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, fileSize: number } } | null };
+export type MarkOnlineReviewVideoFailedToUploadMutation = { __typename?: 'Mutation', school21?: { __typename?: 'School21Mutations', markP2pCheckVideoFailedToUpload: { __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, fileSize: number } } | null };
 
 export type MarkOnlineReviewVideoUploadCancelledMutationVariables = Exact<{
   filledChecklistId: Scalars['ID']['input'];
@@ -62952,7 +63326,7 @@ export type MarkOnlineReviewVideoUploadCancelledMutationVariables = Exact<{
 }>;
 
 
-export type MarkOnlineReviewVideoUploadCancelledMutation = { __typename?: 'Mutation', school21?: { __typename?: 'School21Mutations', markP2pCheckVideoUploadCancelled: { __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, fileSize: number } } | null };
+export type MarkOnlineReviewVideoUploadCancelledMutation = { __typename?: 'Mutation', school21?: { __typename?: 'School21Mutations', markP2pCheckVideoUploadCancelled: { __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, fileSize: number } } | null };
 
 export type CapitulationFromTheCourseMutationVariables = Exact<{
   localCourseId: Scalars['ID']['input'];
@@ -63258,7 +63632,7 @@ export type GetProfileUserQueryVariables = Exact<{
 
 export type GetProfileUserQuery = { __typename?: 'Query', school21?: { __typename?: 'School21Queries', getBasePublicProfile: { __typename?: 'BasePublicProfile', avatarUrl?: string | null, firstName: string, middleName?: string | null, lastName: string }, getExperiencePublicProfile?: { __typename?: 'UserExperience', id: string, cookiesCount: number, codeReviewPoints: number, coinsCount: number, level: { __typename?: 'ExperienceLevel', id: number, range: { __typename?: 'ExperienceLevelRange', id: string, levelCode: number } } } | null } | null };
 
-export type ProjectAttemptEvaluationsFragment = { __typename?: 'ProjectAttemptEvaluationsInfo', studentAnswerId: string, attemptResult?: { __typename?: 'StudentGoalAttempt', finalPointProject: number, finalPercentageProject: number, resultModuleCompletion: ResultModuleCompletion, resultDate: Date } | null, team?: { __typename?: 'TeamWithMembers', team: { __typename?: 'Team', id: string, name: string }, members: Array<{ __typename?: 'TeamMember', role: TeamRole, user?: { __typename?: 'User', id: string, avatarUrl: string, login?: string | null, userExperience?: { __typename?: 'UserExperience', cookiesCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', id: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null } | null }> } | null, p2p: Array<{ __typename?: 'P2PEvaluationInfo', status: ProjectEvaluationStatus, checklist?: { __typename?: 'FilledChecklist', id: string, checklistId: string, endTimeCheck?: Date | null, startTimeCheck: Date, comment?: string | null, receivedPoint?: number | null, receivedPercentage?: number | null, quickAction?: QuickAction | null, checkType?: FilledChecklistCheckType | null, reviewer: { __typename?: 'User', avatarUrl: string, login?: string | null, businessAdminRoles?: Array<{ __typename?: 'BusinessAdminRole', id: string, school: { __typename?: 'SafeSchool', id: string, organizationType: string } }> | null }, reviewFeedback?: { __typename?: 'ReviewFeedback', id: string, comment: string, filledChecklist: { __typename?: 'FilledChecklist', id: string }, reviewFeedbackCategoryValues: Array<{ __typename?: 'ReviewFeedbackCategoryValue', feedbackCategory: FeedbackCategoryEnum, feedbackValue: FeedbackCategoryValueEnum, id: string } | null> } | null, onlineReview?: { __typename?: 'OnlineReview', isOnline: boolean, videos?: Array<{ __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, fileSize: number }> | null } | null } | null }>, auto: { __typename?: 'AutoEvaluationInfo', status: ProjectEvaluationStatus, receivedPercentage: number, endTimeCheck?: Date | null, resultInfo?: string | null }, codeReview: { __typename?: 'StudentCodeReviewResult', averageMark?: CodeReviewMark | null, studentCodeReviews: Array<{ __typename?: 'StudentCodeReview', finalMark?: boolean | null, markTime?: Date | null, reviewerCommentsCount?: number | null, user: { __typename?: 'User', avatarUrl: string, login?: string | null } }> } };
+export type ProjectAttemptEvaluationsFragment = { __typename?: 'ProjectAttemptEvaluationsInfo', studentAnswerId: string, attemptResult?: { __typename?: 'StudentGoalAttempt', finalPointProject: number, finalPercentageProject: number, resultModuleCompletion: ResultModuleCompletion, resultDate: Date } | null, team?: { __typename?: 'TeamWithMembers', team: { __typename?: 'Team', id: string, name: string }, members: Array<{ __typename?: 'TeamMember', role: TeamRole, user?: { __typename?: 'User', id: string, avatarUrl: string, login?: string | null, userExperience?: { __typename?: 'UserExperience', cookiesCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', id: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null } | null }> } | null, p2p: Array<{ __typename?: 'P2PEvaluationInfo', status: ProjectEvaluationStatus, checklist?: { __typename?: 'FilledChecklist', id: string, checklistId: string, endTimeCheck?: Date | null, startTimeCheck: Date, comment?: string | null, receivedPoint?: number | null, receivedPercentage?: number | null, quickAction?: QuickAction | null, checkType?: FilledChecklistCheckType | null, reviewer: { __typename?: 'User', avatarUrl: string, login?: string | null, businessAdminRoles?: Array<{ __typename?: 'BusinessAdminRole', id: string, school: { __typename?: 'SafeSchool', id: string, organizationType: string } }> | null }, reviewFeedback?: { __typename?: 'ReviewFeedback', id: string, comment: string, filledChecklist: { __typename?: 'FilledChecklist', id: string }, reviewFeedbackCategoryValues: Array<{ __typename?: 'ReviewFeedbackCategoryValue', feedbackCategory: FeedbackCategoryEnum, feedbackValue: FeedbackCategoryValueEnum, id: string } | null> } | null, onlineReview?: { __typename?: 'OnlineReview', isOnline: boolean, videos?: Array<{ __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, fileSize: number }> | null } | null } | null }>, auto: { __typename?: 'AutoEvaluationInfo', status: ProjectEvaluationStatus, receivedPercentage: number, endTimeCheck?: Date | null, resultInfo?: string | null }, codeReview: { __typename?: 'StudentCodeReviewResult', averageMark?: CodeReviewMark | null, studentCodeReviews: Array<{ __typename?: 'StudentCodeReview', finalMark?: boolean | null, markTime?: Date | null, reviewerCommentsCount?: number | null, user: { __typename?: 'User', avatarUrl: string, login?: string | null } }> } };
 
 export type GetProjectAttemptEvaluationsInfoByStudentQueryVariables = Exact<{
   goalId: Scalars['ID']['input'];
@@ -63266,7 +63640,7 @@ export type GetProjectAttemptEvaluationsInfoByStudentQueryVariables = Exact<{
 }>;
 
 
-export type GetProjectAttemptEvaluationsInfoByStudentQuery = { __typename?: 'Query', school21?: { __typename?: 'School21Queries', getProjectAttemptEvaluationsInfo: Array<{ __typename?: 'ProjectAttemptEvaluationsInfo', studentAnswerId: string, attemptResult?: { __typename?: 'StudentGoalAttempt', finalPointProject: number, finalPercentageProject: number, resultModuleCompletion: ResultModuleCompletion, resultDate: Date } | null, team?: { __typename?: 'TeamWithMembers', team: { __typename?: 'Team', id: string, name: string }, members: Array<{ __typename?: 'TeamMember', role: TeamRole, user?: { __typename?: 'User', id: string, avatarUrl: string, login?: string | null, userExperience?: { __typename?: 'UserExperience', cookiesCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', id: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null } | null }> } | null, p2p: Array<{ __typename?: 'P2PEvaluationInfo', status: ProjectEvaluationStatus, checklist?: { __typename?: 'FilledChecklist', id: string, checklistId: string, endTimeCheck?: Date | null, startTimeCheck: Date, comment?: string | null, receivedPoint?: number | null, receivedPercentage?: number | null, quickAction?: QuickAction | null, checkType?: FilledChecklistCheckType | null, reviewer: { __typename?: 'User', avatarUrl: string, login?: string | null, businessAdminRoles?: Array<{ __typename?: 'BusinessAdminRole', id: string, school: { __typename?: 'SafeSchool', id: string, organizationType: string } }> | null }, reviewFeedback?: { __typename?: 'ReviewFeedback', id: string, comment: string, filledChecklist: { __typename?: 'FilledChecklist', id: string }, reviewFeedbackCategoryValues: Array<{ __typename?: 'ReviewFeedbackCategoryValue', feedbackCategory: FeedbackCategoryEnum, feedbackValue: FeedbackCategoryValueEnum, id: string } | null> } | null, onlineReview?: { __typename?: 'OnlineReview', isOnline: boolean, videos?: Array<{ __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, statusDetails?: string | null, updateDateTime: Date, fileSize: number }> | null } | null } | null }>, auto: { __typename?: 'AutoEvaluationInfo', status: ProjectEvaluationStatus, receivedPercentage: number, endTimeCheck?: Date | null, resultInfo?: string | null }, codeReview: { __typename?: 'StudentCodeReviewResult', averageMark?: CodeReviewMark | null, studentCodeReviews: Array<{ __typename?: 'StudentCodeReview', finalMark?: boolean | null, markTime?: Date | null, reviewerCommentsCount?: number | null, user: { __typename?: 'User', avatarUrl: string, login?: string | null } }> } }> } | null };
+export type GetProjectAttemptEvaluationsInfoByStudentQuery = { __typename?: 'Query', school21?: { __typename?: 'School21Queries', getProjectAttemptEvaluationsInfo: Array<{ __typename?: 'ProjectAttemptEvaluationsInfo', studentAnswerId: string, attemptResult?: { __typename?: 'StudentGoalAttempt', finalPointProject: number, finalPercentageProject: number, resultModuleCompletion: ResultModuleCompletion, resultDate: Date } | null, team?: { __typename?: 'TeamWithMembers', team: { __typename?: 'Team', id: string, name: string }, members: Array<{ __typename?: 'TeamMember', role: TeamRole, user?: { __typename?: 'User', id: string, avatarUrl: string, login?: string | null, userExperience?: { __typename?: 'UserExperience', cookiesCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', id: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null } | null }> } | null, p2p: Array<{ __typename?: 'P2PEvaluationInfo', status: ProjectEvaluationStatus, checklist?: { __typename?: 'FilledChecklist', id: string, checklistId: string, endTimeCheck?: Date | null, startTimeCheck: Date, comment?: string | null, receivedPoint?: number | null, receivedPercentage?: number | null, quickAction?: QuickAction | null, checkType?: FilledChecklistCheckType | null, reviewer: { __typename?: 'User', avatarUrl: string, login?: string | null, businessAdminRoles?: Array<{ __typename?: 'BusinessAdminRole', id: string, school: { __typename?: 'SafeSchool', id: string, organizationType: string } }> | null }, reviewFeedback?: { __typename?: 'ReviewFeedback', id: string, comment: string, filledChecklist: { __typename?: 'FilledChecklist', id: string }, reviewFeedbackCategoryValues: Array<{ __typename?: 'ReviewFeedbackCategoryValue', feedbackCategory: FeedbackCategoryEnum, feedbackValue: FeedbackCategoryValueEnum, id: string } | null> } | null, onlineReview?: { __typename?: 'OnlineReview', isOnline: boolean, videos?: Array<{ __typename?: 'OnlineReviewVideo', onlineVideoId: string, link: string, status: StudyProcessFileStatusEnum, updateDateTime: Date, fileSize: number }> | null } | null } | null }>, auto: { __typename?: 'AutoEvaluationInfo', status: ProjectEvaluationStatus, receivedPercentage: number, endTimeCheck?: Date | null, resultInfo?: string | null }, codeReview: { __typename?: 'StudentCodeReviewResult', averageMark?: CodeReviewMark | null, studentCodeReviews: Array<{ __typename?: 'StudentCodeReview', finalMark?: boolean | null, markTime?: Date | null, reviewerCommentsCount?: number | null, user: { __typename?: 'User', avatarUrl: string, login?: string | null } }> } }> } | null };
 
 export type GetProjectInfoByStudentQueryVariables = Exact<{
   goalId: Scalars['ID']['input'];
@@ -63274,7 +63648,7 @@ export type GetProjectInfoByStudentQueryVariables = Exact<{
 }>;
 
 
-export type GetProjectInfoByStudentQuery = { __typename?: 'Query', school21?: { __typename?: 'School21Queries', getModuleById: { __typename?: 'StudentModule', id: string, moduleTitle: string, finalPercentage?: number | null, finalPoint?: number | null, goalExecutionType?: ModuleExecutionType | null, displayedGoalStatus?: DisplayedGoalStatus | null, accessBeforeStartProgress?: boolean | null, resultModuleCompletion?: ResultModuleCompletion | null, finishedExecutionDateByScheduler?: Date | null, durationFromStageSubjectGroupPlan?: number | null, currentAttemptNumber?: number | null, isDeadlineFree?: boolean | null, isRetryAvailable: boolean, localCourseId?: string | null, courseBaseParameters?: { __typename?: 'CourseBaseParameters', isGradedCourse: boolean } | null, teamSettings?: { __typename?: 'TeamSettings', teamCreateOption: TeamCreateOptionEnum, minAmountMember: number, maxAmountMember: number, enableSurrenderTeam?: boolean | null } | null, studyModule: { __typename?: 'StudyModule', id: string, idea: string, duration: number, goalPoint?: number | null, retrySettings?: { __typename?: 'ModuleAttemptsSettings', maxModuleAttempts?: number | null, isUnlimitedAttempts: boolean } | null, levels: Array<{ __typename?: 'StudyModuleLevel', id: string, goalElements: Array<{ __typename?: 'StudyModuleGoalElement', id: string, tasks: Array<{ __typename?: 'Task', id: string, taskId: string }> }> }> }, currentTask?: { __typename?: 'StudentTask', id: string, taskId: string, task: { __typename?: 'Task', id: string, assignmentType: TaskAssignmentEnum, taskSolutionType?: TaskSolutionTypeEnum | null, checkTypes: Array<TaskCheckEnum>, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number, maxCodeReviewCount: number, codeReviewCost: number, ciCdMode: GitlabCiCdType } }, lastAnswer?: { __typename?: 'StudentAnswer', id: string } | null, teamSettings?: { __typename?: 'TeamSettings', teamCreateOption: TeamCreateOptionEnum, minAmountMember: number, maxAmountMember: number, enableSurrenderTeam?: boolean | null } | null } | null }, getModuleCoverInformation?: { __typename?: 'ModuleCoverInformation', isOwnStudentTimeline?: boolean | null, softSkills: Array<{ __typename?: 'SoftSkillPoint', softSkillId: number, softSkillName: string, totalPower: number, maxPower: number, currentUserPower: number, achievedUserPower?: number | null, teamRole?: TeamRole | null }>, timeline: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, status: TimelineItemStatus, start?: Date | null, end?: Date | null, children?: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, elementType?: TimelineElementEnum | null, status: TimelineItemStatus, start?: Date | null, end?: Date | null, order?: number | null } | null> | null }> } | null, getP2PChecksInfo?: { __typename?: 'P2PChecksInfo', cookiesCount: number, periodOfVerification: number, projectReviewsInfo: { __typename?: 'ProjectReviewsInfo', reviewByStudentCount: number, relevantReviewByStudentsCount: number, reviewByInspectionStaffCount: number, relevantReviewByInspectionStaffCount: number } } | null, getGoalRetryInfo: { __typename?: 'StudentGoalRetryInfo', totalRetryValue: number, usedRetryCount: number, unlimitedAttempts: boolean } } | null };
+export type GetProjectInfoByStudentQuery = { __typename?: 'Query', school21?: { __typename?: 'School21Queries', getModuleById: { __typename?: 'StudentModule', id: string, moduleTitle: string, finalPercentage?: number | null, finalPoint?: number | null, goalExecutionType?: ModuleExecutionType | null, displayedGoalStatus?: DisplayedGoalStatus | null, accessBeforeStartProgress?: boolean | null, resultModuleCompletion?: ResultModuleCompletion | null, finishedExecutionDateByScheduler?: Date | null, durationFromStageSubjectGroupPlan?: number | null, currentAttemptNumber?: number | null, isDeadlineFree?: boolean | null, isRetryAvailable: boolean, localCourseId?: string | null, courseBaseParameters?: { __typename?: 'CourseBaseParameters', isGradedCourse: boolean } | null, teamSettings?: { __typename?: 'TeamSettings', teamCreateOption: TeamCreateOptionEnum, minAmountMember: number, maxAmountMember: number, enableSurrenderTeam?: boolean | null } | null, studyModule: { __typename?: 'StudyModule', id: string, idea: string, duration: number, goalPoint?: number | null, retrySettings?: { __typename?: 'ModuleAttemptsSettings', maxModuleAttempts?: number | null, isUnlimitedAttempts: boolean } | null, levels: Array<{ __typename?: 'StudyModuleLevel', id: string, goalElements: Array<{ __typename?: 'StudyModuleGoalElement', id: string, tasks: Array<{ __typename?: 'Task', id: string, taskId: string }> }> }> }, currentTask?: { __typename?: 'StudentTask', id: string, taskId: string, task: { __typename?: 'Task', id: string, assignmentType: TaskAssignmentEnum, taskSolutionType?: TaskSolutionTypeEnum | null, checkTypes: Array<TaskCheckEnum>, studentTaskAdditionalAttributes: { __typename?: 'StudentTaskAdditionalAttributes', cookiesCount: number, maxCodeReviewCount: number, codeReviewCost: number, ciCdMode: GitlabCiCdType } }, lastAnswer?: { __typename?: 'StudentAnswer', id: string } | null, teamSettings?: { __typename?: 'TeamSettings', teamCreateOption: TeamCreateOptionEnum, minAmountMember: number, maxAmountMember: number, enableSurrenderTeam?: boolean | null } | null } | null }, getModuleCoverInformation?: { __typename?: 'ModuleCoverInformation', isOwnStudentTimeline?: boolean | null, softSkills: Array<{ __typename?: 'SoftSkillPoint', softSkillId: number, softSkillName: string, totalPower: number, maxPower: number, currentUserPower: number, achievedUserPower?: number | null, teamRole?: TeamRole | null }>, timeline: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, status: TimelineItemStatus, start?: Date | null, end?: Date | null, children?: Array<{ __typename?: 'ProjectTimelineItem', type: TimelineItemType, elementType?: TimelineElementEnum | null, status: TimelineItemStatus, start?: Date | null, end?: Date | null, order?: number | null } | null> | null }> } | null, getP2PChecksInfo?: { __typename?: 'P2PChecksInfo', cookiesCount: number, periodOfVerification: number, projectReviewsInfo: { __typename?: 'ProjectReviewsInfo', reviewByStudentCount: number, relevantReviewByStudentsCount: number, reviewByInspectionStaffCount: number, relevantReviewByInspectionStaffCount: number, p2pRequirementStatus: P2pRequirementStatus } } | null, getGoalRetryInfo: { __typename?: 'StudentGoalRetryInfo', totalRetryValue: number, usedRetryCount: number, unlimitedAttempts: boolean } } | null };
 
 export type TeamMemberWithRoleFragment = { __typename?: 'TeamMember', role: TeamRole, user?: { __typename?: 'User', id: string, avatarUrl: string, login?: string | null, activeSchoolShortName?: string | null, userExperience?: { __typename?: 'UserExperience', cookiesCount: number, codeReviewPoints: number, level: { __typename?: 'ExperienceLevel', id: number, range: { __typename?: 'ExperienceLevelRange', levelCode: number } } } | null } | null };
 
