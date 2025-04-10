@@ -5587,6 +5587,8 @@ export type BusinessAdminMutations = {
    * @deprecated use school21 mutation
    */
   freezeStudents?: Maybe<ExpelResult>;
+  /** Генерация invite-кодов */
+  generateInviteCodes: Array<InviteCodeModel>;
   /** Выполнить асинхронный запрос на автоматическую генерацию расписания */
   generateSchedule: Scalars['Boolean']['output'];
   /** выпуск учеников */
@@ -5743,6 +5745,10 @@ export type BusinessAdminMutations = {
   updateExam: Exam;
   /** Запись баллов в таблицу глобальных заданий */
   updateGlobalPlanGoalPoints?: Maybe<Scalars['Boolean']['output']>;
+  /** Обновление статусов invite-кодов или удаление invite-кодов в случае, если статус равен BLOCKED, а текущий статус invite-кода - NEW */
+  updateInviteCodeStatus: Array<InviteCodeModel>;
+  /** Обновление приватности UTM-метки */
+  updateIsTwoFactorForUtmSource: UtmSourceModel;
   /** Редактирование дистанционного периода */
   updatePeriodLessonPlan: PeriodLessonPlanExtended;
   /** Обновление дистанционного периода (перегенерация планов) */
@@ -6375,6 +6381,13 @@ export type BusinessAdminMutationsFreezeStudentsArgs = {
 };
 
 
+export type BusinessAdminMutationsGenerateInviteCodesArgs = {
+  comment?: InputMaybe<Scalars['String']['input']>;
+  numberOfCodes: Scalars['ID']['input'];
+  utmId: Scalars['ID']['input'];
+};
+
+
 export type BusinessAdminMutationsGenerateScheduleArgs = {
   academicYearId: Scalars['ID']['input'];
   buildingIds: Array<Scalars['ID']['input']>;
@@ -6761,6 +6774,7 @@ export type BusinessAdminMutationsUnfreezeStudentsArgs = {
 export type BusinessAdminMutationsUpdateAllowedStatusByMobilePhoneOrEmailOrUtmSourceArgs = {
   allowed: Scalars['Boolean']['input'];
   email?: InputMaybe<Scalars['String']['input']>;
+  isTwoFactor?: InputMaybe<Scalars['Boolean']['input']>;
   mobilePhone?: InputMaybe<Scalars['String']['input']>;
   utmSource?: InputMaybe<Scalars['String']['input']>;
 };
@@ -6809,6 +6823,18 @@ export type BusinessAdminMutationsUpdateExamArgs = {
 
 export type BusinessAdminMutationsUpdateGlobalPlanGoalPointsArgs = {
   goalPoints: Array<GoalPointInput>;
+};
+
+
+export type BusinessAdminMutationsUpdateInviteCodeStatusArgs = {
+  codeIds: Array<Scalars['ID']['input']>;
+  status: InviteCodeStatus;
+};
+
+
+export type BusinessAdminMutationsUpdateIsTwoFactorForUtmSourceArgs = {
+  isTwoFactor: Scalars['Boolean']['input'];
+  utmId: Scalars['ID']['input'];
 };
 
 
@@ -6887,10 +6913,14 @@ export type BusinessAdminQueries = {
   checkS21ClassPlanPeriodsRelocatedToPast: Array<Scalars['String']['output']>;
   /** Получение количества всех внешних учителей */
   countAllExternalTeachers: Scalars['Int']['output'];
+  /** Получение количества всех invite-кодов */
+  countAllInviteCodes: Scalars['ID']['output'];
   /** Получение количества университетов */
   countAllUniversities: Scalars['ID']['output'];
   /** Получение количества внешних учителей по классу */
   countExternalTeachersByStageGroupId: Scalars['Int']['output'];
+  /** Подсчет количества записей с invite-кодами */
+  countInviteCodesReportBtc: Scalars['ID']['output'];
   /** Получение количества записей в отчете welcome pack */
   countWelcomePackReports: Scalars['ID']['output'];
   /** Предметы. Выгрузка в Excel. */
@@ -6916,9 +6946,17 @@ export type BusinessAdminQueries = {
   downloadTasksOnCheckForMoreThan7DaysDetailedExcel: ReportExcelFile;
   /** Выгрузка сертификата ученика */
   exportCertificateForStudent: IssuedCertificatePdf;
+  /** Отчет "Сводный траекториям" в Bootcamp */
+  exportExternalSummaryStatisticsReportBtc: ReportExcelFile;
+  /** Отчет "Сводный по городам, BootCamp-мастерам и траекториям" в Bootcamp */
+  exportInternalSummaryStatisticsReportBtc: ReportExcelFile;
+  /** Генерация excel-отчета с invite-кодами */
+  exportInviteCodesReportBtc: ReportExcelFile;
+  /** Генерация excel-файла с invite-кодами для передачи кураторам */
+  exportInviteCodesToTransfer: ReportExcelFile;
   /** Отчет по выгрузке вузовской почты учеников в Bootcamp */
   exportStudentUniversityEmails: ReportExcelFile;
-  /** Отчет по Welcome Pack'ах в Bootcamp */
+  /** Отчет о выдаче Welcome Pack'ов в Bootcamp */
   exportWelcomePackReports: ReportExcelFile;
   /** Запрос всех групп класса по предмету для школы */
   findAllStageSubjectGroupsOfSchool: Array<StageSubjectGroup>;
@@ -6966,6 +7004,8 @@ export type BusinessAdminQueries = {
   getAllExternalTeachers: Array<BtcExternalTeacherModel>;
   /** Получения списка студентов из student_whiteList */
   getAllInStudentWhiteList: Array<StudentWhiteListModel>;
+  /** Получение списка всех invite-кодов */
+  getAllInviteCodes: Array<InviteCodeModel>;
   /**
    * Возвращает список регионов России
    * @deprecated Запрос для получения всех регионов в UserQueries
@@ -6982,6 +7022,8 @@ export type BusinessAdminQueries = {
   getAllUniversitiesDomains: Array<Scalars['String']['output']>;
   /** Получение списка университетов и их почтовых доменов */
   getAllUniversitiesInfo: Array<UniversityInfoModel>;
+  /** Получение списка всех utm-меток */
+  getAllUtmSources: Array<UtmSourceModel>;
   /** Получение списка классов, переведенных в архив Bootcamp */
   getArchiveStageGroups: Array<Scalars['ID']['output']>;
   /** список доступных пермишенов */
@@ -7129,6 +7171,8 @@ export type BusinessAdminQueries = {
    * @deprecated use school21 query
    */
   getExperiencePublicProfile?: Maybe<UserExperience>;
+  /** Получение сводного отчета по внешним пользователям BootCamp */
+  getExternalSummaryStatisticsReportBtc: Array<SummaryStatistics>;
   /** Получение внешних учителей по классу */
   getExternalTeachersByStageGroupId: Array<BtcExternalTeacherModel>;
   /** Получение данных о количестве P2P проверок и средней оценке пользователя как ревьюера */
@@ -7145,6 +7189,14 @@ export type BusinessAdminQueries = {
   getGoalsByStageAndStageSubjectGroupIds: Array<S21Goal>;
   /** Возвращает список систем оценивания */
   getGovernmentMarkTypes: Array<GovernmentMarkType>;
+  /** Получение сводного отчета по внутренним пользователям BootCamp */
+  getInternalSummaryStatisticsReportBtc: SummaryStatisticsReport;
+  /** Получение списка всех статусов invite-кодов */
+  getInviteCodeStatuses: Array<InviteCodeStatusModel>;
+  /** Получение список всех авторов invite-кодов для определенной utm метки */
+  getInviteCodesAuthorByUtmId: Array<SimpleUserInfoModel>;
+  /** Отчет с invite-кодами */
+  getInviteCodesReportBtc: Array<InviteCodeReportModel>;
   /** Получение флага, является ли пользователь внешним учителем */
   getIsExternalTeacherFlag: Scalars['Boolean']['output'];
   /** @deprecated Используйте getLastGivingsV3 */
@@ -7194,6 +7246,8 @@ export type BusinessAdminQueries = {
   getNotifications: Array<Notification>;
   getNotificationsByTypes: Array<Notification>;
   getNotificationsCount: Scalars['Int']['output'];
+  /** Получение рейтинга по P2P проверке */
+  getP2PLeaderBoard: Array<P2PLeaderBoardStudentModel>;
   /** Получение списка периодов планирования уроков в учебном году с их вычисляемыми статусами */
   getPeriodLessonPlansWithStatuses: Array<PeriodLessonPlanExtended>;
   /** S21. Получение списка модулей плана для дашборда, в зависимости от id плана и и типа плана */
@@ -7307,6 +7361,8 @@ export type BusinessAdminQueries = {
    * Содержит только те ГКпП, в которых преподает учитель.
    */
   getStageGroupsByTeacher: Array<StageGroupAggregated>;
+  /** Получение класс по типу шаблонов траекторий учеников внутри них */
+  getStageGroupsByTrajectoryType: Array<StageGroup>;
   /** Получение классов внешнего учителя */
   getStageGroupsByUserId: Array<Scalars['ID']['output']>;
   /**
@@ -7603,6 +7659,11 @@ export type BusinessAdminQueriesCountAllExternalTeachersArgs = {
 };
 
 
+export type BusinessAdminQueriesCountAllInviteCodesArgs = {
+  filter: InviteCodeFilterInputModel;
+};
+
+
 export type BusinessAdminQueriesCountAllUniversitiesArgs = {
   universityInfoFilter: UniversityInfoFilterModel;
 };
@@ -7611,6 +7672,11 @@ export type BusinessAdminQueriesCountAllUniversitiesArgs = {
 export type BusinessAdminQueriesCountExternalTeachersByStageGroupIdArgs = {
   btcExternalTeacherInputModel: BtcExternalTeacherInputModel;
   stageGroupId: Scalars['ID']['input'];
+};
+
+
+export type BusinessAdminQueriesCountInviteCodesReportBtcArgs = {
+  filter: InviteCodeFilterInputModel;
 };
 
 
@@ -7706,6 +7772,26 @@ export type BusinessAdminQueriesDownloadTasksOnCheckForMoreThan7DaysDetailedExce
 export type BusinessAdminQueriesExportCertificateForStudentArgs = {
   issuedId: Scalars['ID']['input'];
   studentId: Scalars['UUID']['input'];
+};
+
+
+export type BusinessAdminQueriesExportExternalSummaryStatisticsReportBtcArgs = {
+  filter: SummaryStatisticsFilterInput;
+};
+
+
+export type BusinessAdminQueriesExportInternalSummaryStatisticsReportBtcArgs = {
+  filter: SummaryStatisticsFilterInput;
+};
+
+
+export type BusinessAdminQueriesExportInviteCodesReportBtcArgs = {
+  filter: InviteCodeFilterInputModel;
+};
+
+
+export type BusinessAdminQueriesExportInviteCodesToTransferArgs = {
+  filter: InviteCodeFilterInputModel;
 };
 
 
@@ -7808,6 +7894,11 @@ export type BusinessAdminQueriesGetAllInStudentWhiteListArgs = {
 };
 
 
+export type BusinessAdminQueriesGetAllInviteCodesArgs = {
+  filter: InviteCodeFilterInputModel;
+};
+
+
 export type BusinessAdminQueriesGetAllSafeSchoolArgs = {
   isActive?: InputMaybe<Scalars['Boolean']['input']>;
 };
@@ -7815,6 +7906,11 @@ export type BusinessAdminQueriesGetAllSafeSchoolArgs = {
 
 export type BusinessAdminQueriesGetAllUniversitiesInfoArgs = {
   universityInfoFilter: UniversityInfoFilterModel;
+};
+
+
+export type BusinessAdminQueriesGetAllUtmSourcesArgs = {
+  filter: UtmSourceFilterInputModel;
 };
 
 
@@ -8106,6 +8202,11 @@ export type BusinessAdminQueriesGetExperiencePublicProfileArgs = {
 };
 
 
+export type BusinessAdminQueriesGetExternalSummaryStatisticsReportBtcArgs = {
+  filter: SummaryStatisticsFilterInput;
+};
+
+
 export type BusinessAdminQueriesGetExternalTeachersByStageGroupIdArgs = {
   btcExternalTeacherInputModel: BtcExternalTeacherInputModel;
   stageGroupId: Scalars['ID']['input'];
@@ -8144,6 +8245,21 @@ export type BusinessAdminQueriesGetGoalsByDatePeriodAndStageSubjectGroupArgs = {
 export type BusinessAdminQueriesGetGoalsByStageAndStageSubjectGroupIdsArgs = {
   stageId?: InputMaybe<Scalars['Int']['input']>;
   stageSubjectGroupIds: Array<Scalars['Int']['input']>;
+};
+
+
+export type BusinessAdminQueriesGetInternalSummaryStatisticsReportBtcArgs = {
+  filter: SummaryStatisticsFilterInput;
+};
+
+
+export type BusinessAdminQueriesGetInviteCodesAuthorByUtmIdArgs = {
+  utmId: Scalars['ID']['input'];
+};
+
+
+export type BusinessAdminQueriesGetInviteCodesReportBtcArgs = {
+  filter: InviteCodeFilterInputModel;
 };
 
 
@@ -8246,6 +8362,11 @@ export type BusinessAdminQueriesGetNotificationsByTypesArgs = {
 
 export type BusinessAdminQueriesGetNotificationsCountArgs = {
   wasReadIncluded?: InputMaybe<Scalars['Boolean']['input']>;
+};
+
+
+export type BusinessAdminQueriesGetP2PLeaderBoardArgs = {
+  filter: P2PLeaderBoardInput;
 };
 
 
@@ -8503,6 +8624,11 @@ export type BusinessAdminQueriesGetStageGroupsBySchoolAndTeacherArgs = {
 export type BusinessAdminQueriesGetStageGroupsByTeacherArgs = {
   academicYearId: Scalars['ID']['input'];
   teacherId: Scalars['UUID']['input'];
+};
+
+
+export type BusinessAdminQueriesGetStageGroupsByTrajectoryTypeArgs = {
+  trajectoryTypeIds: Array<Scalars['ID']['input']>;
 };
 
 
@@ -20572,6 +20698,94 @@ export enum InvitationStatusEnum {
   Refused = 'REFUSED'
 }
 
+export type InviteCodeFilterInputModel = {
+  /** Идентификатор БМ-мастера */
+  bmUserId?: InputMaybe<Scalars['UUID']['input']>;
+  /** Идентификаторы выбранных invite-кодов */
+  codeIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Дата начала диапазона поиска по дате создания записи */
+  createDateFrom?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Дата окончания диапазона поиска по дате создания записи */
+  createDateTo?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Пагинация */
+  paging?: InputMaybe<PagingInput>;
+  /** Статус invite-кода */
+  status?: InputMaybe<Scalars['String']['input']>;
+  /** Идентификатор utm-метки */
+  utmId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type InviteCodeModel = {
+  __typename?: 'InviteCodeModel';
+  /** Идентификатор invite-кода */
+  codeId: Scalars['ID']['output'];
+  /** Invite-код */
+  codeString: Scalars['String']['output'];
+  /** Комментарий к invite-коду */
+  comment?: Maybe<Scalars['String']['output']>;
+  /** Время создания invite-кода */
+  createTs: Scalars['DateTime']['output'];
+  /** Идентификатор пользователя, создавшего invite-код */
+  createdBy?: Maybe<Scalars['UUID']['output']>;
+  /** ФИО пользователя, создавшего invite-код */
+  creatorFullName?: Maybe<Scalars['String']['output']>;
+  /** Время начала временной блокировки invite-кода пользователем */
+  lockTs?: Maybe<Scalars['DateTime']['output']>;
+  /** Идентификатор пользователя, захватившего блокировку invite-кода во время попытки войти в систему */
+  lockUserId?: Maybe<Scalars['UUID']['output']>;
+  /** Время изменения записи по invite-коду */
+  modifyTs?: Maybe<Scalars['DateTime']['output']>;
+  /** Статус invite-кода */
+  status: Scalars['String']['output'];
+  /** Идентификатор пользователя, который зашел по данному invite-коду */
+  userId?: Maybe<Scalars['UUID']['output']>;
+  /** UTM-метка, к которой относится invite-код */
+  utmSource: UtmSourceModel;
+};
+
+export type InviteCodeReportModel = {
+  __typename?: 'InviteCodeReportModel';
+  /** Invite-код */
+  codeString: Scalars['String']['output'];
+  /** Комментарий к invite-коду */
+  comment?: Maybe<Scalars['String']['output']>;
+  /** Время создания invite-кода */
+  createTs: Scalars['DateTime']['output'];
+  /** ФИО пользователя, создавшего invite-код */
+  createdBy?: Maybe<Scalars['String']['output']>;
+  /** Время изменения записи по invite-коду */
+  modifyTs?: Maybe<Scalars['DateTime']['output']>;
+  /** Статус invite-кода */
+  status: Scalars['String']['output'];
+  /** Название траектории */
+  trajectoryName?: Maybe<Scalars['String']['output']>;
+  /** Идентификатор пользователя, который зашел по данному invite-коду */
+  userId?: Maybe<Scalars['UUID']['output']>;
+  /** UTM-метка, к которой относится invite-код */
+  utmSource: Scalars['String']['output'];
+};
+
+/** Статус invite-кода в Bootcamp */
+export enum InviteCodeStatus {
+  /** Применен */
+  Assigned = 'ASSIGNED',
+  /** Заблокирован */
+  Blocked = 'BLOCKED',
+  /** Новый */
+  New = 'NEW',
+  /** Зарезервирован */
+  Reserved = 'RESERVED'
+}
+
+/** Статус invite-кода в Bootcamp */
+export type InviteCodeStatusModel = {
+  __typename?: 'InviteCodeStatusModel';
+  /** Название статуса */
+  name: Scalars['String']['output'];
+  /** Текстовый заголовок статуса */
+  title: Scalars['String']['output'];
+};
+
 export type InviteRequestInput = {
   inviteReasonDescription: Scalars['String']['input'];
   inviteUserId: Scalars['UUID']['input'];
@@ -20608,7 +20822,7 @@ export type IssuedCertificateModel = {
   certificateInfo: CertificateOfParticipation;
   /** Плановая дата начала траектории */
   dateEnd: Scalars['Date']['output'];
-  /** Плановая дата окнчания траектории */
+  /** Плановая дата окончания траектории */
   dateStart: Scalars['Date']['output'];
   /** ID записи */
   issuedId: Scalars['ID']['output'];
@@ -25067,6 +25281,44 @@ export type P2PEvaluationInfo = {
   checklist?: Maybe<FilledChecklist>;
   /** Статус проверки */
   status: ProjectEvaluationStatus;
+};
+
+/** Фильтр для построение таблицы рейтинга */
+export type P2PLeaderBoardInput = {
+  /** Фильтр по дате, начало */
+  dateFrom?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Фильтр по дате, конец */
+  dateTo?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Расчет рейтинга по количеству принятых заданий */
+  isFilterByCheckDone?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Расчет рейтинга по количеству возвращенных заданий */
+  isFilterByCheckTryAgain?: InputMaybe<Scalars['Boolean']['input']>;
+  /** Поиск по вхождению */
+  textSearch?: InputMaybe<Scalars['String']['input']>;
+};
+
+/** Рейтинг ученика по проверке P2P */
+export type P2PLeaderBoardModel = {
+  __typename?: 'P2PLeaderBoardModel';
+  /** Таблица со всеми участниками */
+  allRatings: Array<P2PLeaderBoardStudentModel>;
+  /** Личная позиция относительно таблицы */
+  myPosition?: Maybe<P2PLeaderBoardStudentModel>;
+};
+
+/** Рейтинг ученика по проверке P2P */
+export type P2PLeaderBoardStudentModel = {
+  __typename?: 'P2PLeaderBoardStudentModel';
+  /** Подсчет проверенных заданий общий */
+  countAllReview: Scalars['Int']['output'];
+  /** Подсчет проверенных заданий, где указал статус (Зачтенных) */
+  countCheckDone: Scalars['Int']['output'];
+  /** Подсчет проверенных заданий, где указал статус (На доработку) */
+  countCheckTryAgain: Scalars['Int']['output'];
+  /** Полное ФИО ученика */
+  studentFullName: Scalars['String']['output'];
+  /** Позиция ученика в рейтинге */
+  studentPosition: Scalars['Int']['output'];
 };
 
 export type P2pCheckDetailInfo = {
@@ -38848,6 +39100,8 @@ export type StudentProgressForBtcModel = {
   email?: Maybe<Scalars['String']['output']>;
   /** Имя ученика */
   firstName: Scalars['String']['output'];
+  /** Связанный с учеником invite-код */
+  inviteCode?: Maybe<Scalars['String']['output']>;
   /** Формат обучения */
   isStudyOnline?: Maybe<Scalars['Boolean']['output']>;
   /** Плановая трудоёмкость (часы) */
@@ -39366,6 +39620,8 @@ export type StudentQueries = {
   getNotificationsCount: Scalars['Int']['output'];
   /** Получение информации по проверкам проекта */
   getP2PChecksInfo?: Maybe<P2PChecksInfo>;
+  /** Получение рейтинга по P2P проверке */
+  getP2PLeaderBoard: P2PLeaderBoardModel;
   /** S21. Получение информации о P2P проверке (заполненный чек-лист по ответу студента) */
   getP2pInfo: FilledChecklist;
   /** Возвращает Персональную Контрольную Работу по идентификатору */
@@ -40255,6 +40511,11 @@ export type StudentQueriesGetP2PChecksInfoArgs = {
 };
 
 
+export type StudentQueriesGetP2PLeaderBoardArgs = {
+  filter: P2PLeaderBoardInput;
+};
+
+
 export type StudentQueriesGetP2pInfoArgs = {
   filledChecklistId: Scalars['ID']['input'];
   languageCodeType?: InputMaybe<LanguageCodeType>;
@@ -41128,6 +41389,8 @@ export type StudentReducedProgressForBtcModel = {
   firstName: Scalars['String']['output'];
   /** Полное ФИО */
   fullName: Scalars['String']['output'];
+  /** Связанный с учеником invite-код */
+  inviteCode?: Maybe<Scalars['String']['output']>;
   /** Дата последнего входа */
   lastAuthorizationDate?: Maybe<Scalars['DateTime']['output']>;
   /** Фамилия ученика */
@@ -42298,6 +42561,8 @@ export type StudentWhiteListInputModel = {
   allowed?: InputMaybe<Scalars['Boolean']['input']>;
   /** E-mail */
   email?: InputMaybe<Scalars['String']['input']>;
+  /** Является ли метка приватной */
+  isTwoFactor?: InputMaybe<Scalars['Boolean']['input']>;
   /** Номер телефона */
   mobilePhone?: InputMaybe<Scalars['String']['input']>;
   /** Описание */
@@ -42332,7 +42597,12 @@ export type StudentWhiteListModel = {
   trajectoryTemplateId?: Maybe<Scalars['ID']['output']>;
   /** Идентификатор пользователя */
   userId?: Maybe<Scalars['UUID']['output']>;
-  /** Значение метки utm_source */
+  /** Метка utm_source */
+  utmEntity?: Maybe<UtmSourceModel>;
+  /**
+   * Наименование utm метки
+   * @deprecated Использовать utmEntity
+   */
   utmSource?: Maybe<Scalars['String']['output']>;
 };
 
@@ -43424,6 +43694,39 @@ export type SubtitleLinkForLanguageInput = {
   languageCode: Scalars['String']['input'];
   /** Cсылка на субтитры для видео */
   subtitleLink: Scalars['String']['input'];
+};
+
+/** Модель представления */
+export type SummaryStatistics = {
+  __typename?: 'SummaryStatistics';
+  /** Наименование параметра */
+  name: Scalars['String']['output'];
+  /** Значение параметра */
+  value: Scalars['Int']['output'];
+};
+
+export type SummaryStatisticsFilterInput = {
+  /** Начальная дата периода */
+  dateFrom: Scalars['DateTime']['input'];
+  /** Конечная дата периода */
+  dateTo: Scalars['DateTime']['input'];
+  /** Флаг отображающий надобность/не надобность возвращать записи с нулевым значение */
+  isGetWithZero: Scalars['Boolean']['input'];
+  /** Список id классов */
+  stageGroupIds: Array<Scalars['ID']['input']>;
+  /** Список id типов траектории */
+  trajectoryTypeIds: Array<Scalars['ID']['input']>;
+};
+
+/** Сводный отчет */
+export type SummaryStatisticsReport = {
+  __typename?: 'SummaryStatisticsReport';
+  /** По BootCamp мастерам */
+  byBootCampMasters: Array<SummaryStatistics>;
+  /** По городам */
+  byCities: Array<SummaryStatistics>;
+  /** По траекториям */
+  byTrajectories: Array<SummaryStatistics>;
 };
 
 /** Модель опроса */
@@ -51733,19 +52036,13 @@ export type TrajectoryQueries = {
   getAllTrajectories: Array<Trajectory>;
   /** Получение списка всех траекторий из Student Whitelists */
   getAllTrajectoriesFromStudentWhitelists: Array<Trajectory>;
-  /**
-   * Получение списка шаблонов траекторий, у которых есть класс
-   * @deprecated Использовать getAllTrajectoryTemplatesWithStageGroupV2
-   */
-  getAllTrajectoryTemplatesWithStageGroup: Array<Maybe<TrajectoryTemplate>>;
   /** Получение списка шаблонов траекторий, у которых есть класс */
   getAllTrajectoryTemplatesWithStageGroupV2: Array<Maybe<TrajectoryTemplate>>;
   /** Получение списка идентификаторов студентов с информацией по назначенным траекториям в виде строки разделенной запятой */
   getAssignedTrajectories: Array<Maybe<StudentTrajectorySlug>>;
   /** Получить максимальную плановую дату окончания траектории студента */
   getMaxPlanEndDateByStudentIdAndTrajectory?: Maybe<Scalars['Date']['output']>;
-  getRecommendedTrajectoryTemplate?: Maybe<TrajectoryTemplate>;
-  /** Получение рекомендованого шаблона траектории на основании данных из АС Пульс */
+  /** Получение рекомендованного шаблона траектории на основании данных из АС Пульс */
   getRecommendedTrajectoryTemplateV2?: Maybe<TrajectoryTemplate>;
   /** Получение списка идентификаторов студентов с информацией по назначенным траекториям */
   getStudentAssignedTrajectories: Array<StudentAssignedTrajectoryModel>;
@@ -51755,19 +52052,13 @@ export type TrajectoryQueries = {
   /** Получение траекторий по идентификаторам классов */
   getTrajectoriesByStageGroupIds: Array<Trajectory>;
   getTrajectoryById: Trajectory;
+  /** Получение всех авторов шаблонов траекторий */
+  getTrajectoryTemplateAuthors: Array<User>;
   /** Получение шаблона траектории Bootcamp по его идентификатору */
   getTrajectoryTemplateById: TrajectoryTemplate;
   /** Получение статусов шаблонов траекторий Bootcamp */
   getTrajectoryTemplateStatuses: Array<Maybe<TrajectoryTemplateStatus>>;
-  /**
-   * Получение типов шаблонов траекторий Bootcamp
-   * @deprecated Использовать getTrajectoryTemplateTypesV2
-   */
-  getTrajectoryTemplateTypes: Array<Maybe<TrajectoryTemplateType>>;
-  /**
-   * Получение типов шаблонов траекторий Bootcamp
-   * @deprecated Использовать getRecommendedTrajectoryTemplateV2
-   */
+  /** Получение типов шаблонов траекторий Bootcamp */
   getTrajectoryTemplateTypesV2: Array<TrajectoryTemplateTypeModel>;
 };
 
@@ -51807,11 +52098,6 @@ export type TrajectoryQueriesGetAccessibleTrajectoryTemplatesByStageGroupIdArgs 
 };
 
 
-export type TrajectoryQueriesGetAllTrajectoryTemplatesWithStageGroupArgs = {
-  trajectoryTemplateType?: InputMaybe<TrajectoryTemplateType>;
-};
-
-
 export type TrajectoryQueriesGetAllTrajectoryTemplatesWithStageGroupV2Args = {
   trajectoryTemplateType: Scalars['String']['input'];
 };
@@ -51825,13 +52111,6 @@ export type TrajectoryQueriesGetAssignedTrajectoriesArgs = {
 export type TrajectoryQueriesGetMaxPlanEndDateByStudentIdAndTrajectoryArgs = {
   studentId: Scalars['UUID']['input'];
   trajectory: Scalars['String']['input'];
-};
-
-
-export type TrajectoryQueriesGetRecommendedTrajectoryTemplateArgs = {
-  studentId: Scalars['ID']['input'];
-  trajectoryTemplateType: TrajectoryTemplateType;
-  userId: Scalars['ID']['input'];
 };
 
 
@@ -51912,15 +52191,7 @@ export type TrajectoryTemplate = {
   trajectoryTemplateId: Scalars['ID']['output'];
   /** Название шаблона траектории */
   trajectoryTemplateName: Scalars['String']['output'];
-  /**
-   * Тип шаблона траектории
-   * @deprecated Переход на хранение типов шаблонов траекторий в БД, а не в коде
-   */
-  trajectoryTemplateType?: Maybe<TrajectoryTemplateType>;
-  /**
-   * Тип шаблона траектории
-   * Тип шаблона траектории
-   */
+  /** Тип шаблона траектории */
   trajectoryTemplateTypeV2?: Maybe<Scalars['String']['output']>;
 };
 
@@ -52004,8 +52275,6 @@ export type TrajectoryTemplateInputModel = {
   /** Название шаблона траектории */
   trajectoryTemplateName: Scalars['String']['input'];
   /** Тип шаблона траектории */
-  trajectoryTemplateType?: InputMaybe<TrajectoryTemplateType>;
-  /** Тип шаблона траектории */
   trajectoryTemplateTypeV2?: InputMaybe<Scalars['String']['input']>;
 };
 
@@ -52031,18 +52300,6 @@ export enum TrajectoryTemplateStatus {
   Draft = 'DRAFT',
   /** Шаблон полностью заполнен и может использоваться */
   Published = 'PUBLISHED'
-}
-
-/** Тип шаблона траектории Bootcamp */
-export enum TrajectoryTemplateType {
-  /** Тип "Адаптация" */
-  Adaptation = 'ADAPTATION',
-  /** Тип "Внешний" */
-  External = 'EXTERNAL',
-  /** Тип "Стажировка" */
-  Internship = 'INTERNSHIP',
-  /** Тип "Квалификация" */
-  Qualification = 'QUALIFICATION'
 }
 
 /** Тип шаблона траектории Bootcamp */
@@ -53055,6 +53312,8 @@ export type UserModuleAward = {
 
 export type UserMutations = {
   __typename?: 'UserMutations';
+  /** Создание и назначение тегов на сущность */
+  assignBtcTagsToEntity: Array<BtcTagModel>;
   /**
    * Блокировка/разблокировка пользователей (в ШЦП, KC, GitLab).
    * Возвращает относительный путь на файл с результатом блокировки
@@ -53081,10 +53340,20 @@ export type UserMutations = {
   /** сброс признака прохождения онбординга определенного типа */
   resetOnboarding?: Maybe<Scalars['Boolean']['output']>;
   /** Сохранение, редактирование и архивирование тегов */
+  saveAndUpdateBtcTags: Array<BtcTagModel>;
+  /**
+   * Сохранение, редактирование и архивирование тегов
+   * @deprecated A new implementation was created. Use the saveAndUpdateBtcTags mutation
+   */
   saveBtcTag: Array<BtcTagModel>;
   /** Назначение тегов на пользователя */
   saveBtcTagForUser: Scalars['Boolean']['output'];
-  /** Создание и назначение тегов на сущность */
+  /** Сохранение новых тегов */
+  saveBtcTags: Array<BtcTagModel>;
+  /**
+   * Создание и назначение тегов на сущность
+   * @deprecated A new implementation was created. Use the assignBtcTagsToEntity mutation
+   */
   saveBtcTagsForEntity: Array<BtcTagModel>;
   /** Оставить отзыв задании (Лайк/Дизлайк) */
   saveFeedback: Scalars['Boolean']['output'];
@@ -53132,6 +53401,13 @@ export type UserMutations = {
   verifyEmail: Scalars['Boolean']['output'];
   /** Ввод кода отправленного владельцу телефона */
   verifyMobile: EditMobileNumberVerifyResult;
+};
+
+
+export type UserMutationsAssignBtcTagsToEntityArgs = {
+  allTagIdsToAssign?: InputMaybe<Array<Scalars['ID']['input']>>;
+  entityId: Scalars['ID']['input'];
+  entityType: BtcTagsEntityTypeModel;
 };
 
 
@@ -53186,6 +53462,11 @@ export type UserMutationsResetOnboardingArgs = {
 };
 
 
+export type UserMutationsSaveAndUpdateBtcTagsArgs = {
+  btcTags: Array<BtcTagInputModel>;
+};
+
+
 export type UserMutationsSaveBtcTagArgs = {
   btcTagsToSave: Array<BtcTagInputModel>;
   btcTagsToUpdate: Array<BtcTagInputModel>;
@@ -53195,6 +53476,11 @@ export type UserMutationsSaveBtcTagArgs = {
 export type UserMutationsSaveBtcTagForUserArgs = {
   tagIds: Array<Scalars['ID']['input']>;
   userId: Scalars['UUID']['input'];
+};
+
+
+export type UserMutationsSaveBtcTagsArgs = {
+  btcTags: Array<BtcTagInputModel>;
 };
 
 
@@ -54528,6 +54814,23 @@ export type UsersToBadgeAward = {
   userId: Scalars['UUID']['output'];
 };
 
+export type UtmSourceFilterInputModel = {
+  /** Пагинация */
+  paging: PagingInput;
+  /** Фильтр по названию utm-метки */
+  textSearch?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type UtmSourceModel = {
+  __typename?: 'UtmSourceModel';
+  /** Флаг необходимости ввода invite-кода при входе */
+  isTwoFactor?: Maybe<Scalars['Boolean']['output']>;
+  /** Идентификатор UTM-метки */
+  utmId: Scalars['ID']['output'];
+  /** Имя UTM-метки */
+  utmName?: Maybe<Scalars['String']['output']>;
+};
+
 export type VcLink = {
   __typename?: 'VCLink';
   /** Пароль для входа в видеоконференцию */
@@ -54983,11 +55286,11 @@ export type WelcomePackFilterInputModel = {
   isFullSearch?: InputMaybe<Scalars['Boolean']['input']>;
   /** Фильтр по факту выдачи */
   isIssued?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Сортирорвка по дате */
+  /** Сортировка по дате */
   isSortByDate?: InputMaybe<Scalars['Boolean']['input']>;
   /** Сортировка по ФИО */
   isSortByName?: InputMaybe<Scalars['Boolean']['input']>;
-  /** Поиск по Botcamp мастерам */
+  /** Поиск по Bootcamp мастерам */
   masters?: InputMaybe<Array<Scalars['UUID']['input']>>;
   /** Поиск по организациям */
   organisationsNames?: InputMaybe<Array<Scalars['String']['input']>>;
@@ -55033,7 +55336,7 @@ export type WelcomePackReportModel = {
   BmFullName?: Maybe<Scalars['String']['output']>;
   /** Город ученика */
   city?: Maybe<Scalars['String']['output']>;
-  /** Коментарий к сбросу факта выдачи */
+  /** Комментарий к сбросу факта выдачи */
   commentForReset?: Maybe<Scalars['String']['output']>;
   /** Факт выдачи Welcome Pack */
   isIssued: Scalars['Boolean']['output'];
