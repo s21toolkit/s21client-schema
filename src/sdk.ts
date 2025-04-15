@@ -19979,8 +19979,10 @@ export type HolyGraph = {
   graph?: Maybe<HolyGraphJson>;
   /** Id Графа */
   graphId?: Maybe<Scalars['Int']['output']>;
-  /** Идентификатор параллели, для которой действует граф */
-  stageId?: Maybe<Scalars['Int']['output']>;
+  /** Id связанного элемента орг. структуры */
+  linkEntityId?: Maybe<Scalars['Int']['output']>;
+  /** Тип связи с орг. структурой */
+  linkEntityType?: Maybe<HolyGraphLinkEntityTypeEnum>;
   /** Статус графа (P - опубликованный, A - архивный, D - черновик) */
   status?: Maybe<Scalars['String']['output']>;
   /** Идентификатор продукта, в котором действует граф */
@@ -20002,17 +20004,10 @@ export type HolyGraphContentBunch = {
   contentBunchType: HolyGraphContentBunchTypeEnum;
   /** Учебные модули заданных источников */
   items: Array<HolyGraphContentBunchItem>;
-  /** Id параллели */
-  stageId?: Maybe<Scalars['Int']['output']>;
-};
-
-/** Источник проектов */
-export type HolyGraphContentBunchEntity = {
-  __typename?: 'HolyGraphContentBunchEntity';
-  /** Id источника проектов */
-  id: Scalars['Int']['output'];
-  /** Наименование источника проектов */
-  name?: Maybe<Scalars['String']['output']>;
+  /** Id связанного элемента орг. структуры */
+  linkEntityId?: Maybe<Scalars['Int']['output']>;
+  /** Тип связи с орг. структурой */
+  linkEntityType?: Maybe<HolyGraphLinkEntityTypeEnum>;
 };
 
 /** Учебные модули глобального плана */
@@ -20030,7 +20025,18 @@ export type HolyGraphContentBunchItem = {
   skills: Array<HolyGraphItemSkill>;
 };
 
+/** Источник проектов */
+export type HolyGraphContentBunchSource = {
+  __typename?: 'HolyGraphContentBunchSource';
+  /** Id источника проектов */
+  id: Scalars['Int']['output'];
+  /** Наименование источника проектов */
+  name?: Maybe<Scalars['String']['output']>;
+};
+
 export enum HolyGraphContentBunchTypeEnum {
+  /** Назначенный курс */
+  AssignedCourse = 'ASSIGNED_COURSE',
   /** Курс */
   Course = 'COURSE',
   /** Глобальный план */
@@ -20145,6 +20151,40 @@ export type HolyGraphJson = {
   nodes: Array<HolyGraphNode>;
 };
 
+/** Связь графа и орг. структуры */
+export type HolyGraphLinkEntity = {
+  __typename?: 'HolyGraphLinkEntity';
+  /** Комментарий к версии графа */
+  comment?: Maybe<Scalars['String']['output']>;
+  /** Перечень Id источников проектов */
+  contentBunchIds?: Maybe<Array<Maybe<Scalars['Int']['output']>>>;
+  /** Тип источников проектов */
+  contentBunchType?: Maybe<HolyGraphContentBunchTypeEnum>;
+  /** Id графа */
+  graphId?: Maybe<Scalars['Int']['output']>;
+  /** Id связанного элемента орг. структуры */
+  linkEntityId: Scalars['Int']['output'];
+  /** Наименование связанного элемента орг. структуры */
+  linkEntityName: Scalars['String']['output'];
+  /** Тип связи с орг. структурой */
+  linkEntityType: HolyGraphLinkEntityTypeEnum;
+  /** Id кампуса */
+  schoolId?: Maybe<Scalars['UUID']['output']>;
+  /** Наименование кампуса */
+  schoolName?: Maybe<Scalars['String']['output']>;
+  /** Id параллели */
+  stageId: Scalars['Int']['output'];
+  /** Дата последнего изменения */
+  updateTs?: Maybe<Scalars['DateTime']['output']>;
+  /** Автор последнего изменения */
+  updatedBy?: Maybe<Scalars['String']['output']>;
+};
+
+export enum HolyGraphLinkEntityTypeEnum {
+  Stage = 'STAGE',
+  StageGroup = 'STAGE_GROUP'
+}
+
 export type HolyGraphMutations = {
   __typename?: 'HolyGraphMutations';
   /**
@@ -20168,12 +20208,14 @@ export type HolyGraphMutations = {
 
 export type HolyGraphMutationsArchiveGraphArgs = {
   comment?: InputMaybe<Scalars['String']['input']>;
-  stageId: Scalars['Int']['input'];
+  linkEntityId: Scalars['Int']['input'];
+  linkEntityType: HolyGraphLinkEntityTypeEnum;
 };
 
 
 export type HolyGraphMutationsDeleteDraftArgs = {
-  stageId: Scalars['Int']['input'];
+  linkEntityId: Scalars['Int']['input'];
+  linkEntityType: HolyGraphLinkEntityTypeEnum;
 };
 
 
@@ -20182,12 +20224,14 @@ export type HolyGraphMutationsPublishGraphArgs = {
   contentBunchIds: Array<Scalars['Int']['input']>;
   contentBunchType: HolyGraphContentBunchTypeEnum;
   graph: Scalars['JsonNode']['input'];
-  stageId: Scalars['Int']['input'];
+  linkEntityId: Scalars['Int']['input'];
+  linkEntityType: HolyGraphLinkEntityTypeEnum;
 };
 
 
 export type HolyGraphMutationsRestoreArchivedGraphArgs = {
-  stageId: Scalars['Int']['input'];
+  linkEntityId: Scalars['Int']['input'];
+  linkEntityType: HolyGraphLinkEntityTypeEnum;
   version: Scalars['Int']['input'];
 };
 
@@ -20196,7 +20240,8 @@ export type HolyGraphMutationsSaveDraftArgs = {
   contentBunchIds?: InputMaybe<Array<InputMaybe<Scalars['Int']['input']>>>;
   contentBunchType?: InputMaybe<HolyGraphContentBunchTypeEnum>;
   graph: Scalars['JsonNode']['input'];
-  stageId: Scalars['Int']['input'];
+  linkEntityId: Scalars['Int']['input'];
+  linkEntityType: HolyGraphLinkEntityTypeEnum;
 };
 
 /** Группы элементов графа */
@@ -20262,15 +20307,15 @@ export type HolyGraphQueries = {
   /** Получить контекст графа по заданным источникам */
   getContentBunchGraph?: Maybe<HolyGraphContentBunch>;
   /** Получить источники проектов по типу */
-  getContentBunchesByType: Array<HolyGraphContentBunchEntity>;
+  getContentBunchesByType: Array<HolyGraphContentBunchSource>;
   /** Получить черновик графа пользователя */
   getDraftGraph?: Maybe<HolyGraphJson>;
   /** Получить граф по указанному Id */
   getGraph?: Maybe<HolyGraphJson>;
   /** Получить опубликованный граф для указанной параллели */
   getPublishedGraph?: Maybe<HolyGraphJson>;
-  /** Получить список параллелей, имеющих опубликованный граф */
-  getPublishedGraphStages: Array<HolyGraphStage>;
+  /** Получить список орг. единиц, имеющих опубликованный граф */
+  getPublishedGraphsWithLinkEntity: Array<HolyGraphLinkEntity>;
   /** Получить опубликованный шаблон графа прогресса студента */
   getStudentGraphTemplate?: Maybe<HolyGraphJson>;
   /** Получить граф прогресса студента */
@@ -20283,31 +20328,36 @@ export type HolyGraphQueries = {
 
 
 export type HolyGraphQueriesGetArchivedGraphArgs = {
-  stageId: Scalars['Int']['input'];
+  linkEntityId: Scalars['Int']['input'];
+  linkEntityType: HolyGraphLinkEntityTypeEnum;
   version: Scalars['Int']['input'];
 };
 
 
 export type HolyGraphQueriesGetArchivedGraphVersionsArgs = {
-  stageId: Scalars['Int']['input'];
+  linkEntityId: Scalars['Int']['input'];
+  linkEntityType: HolyGraphLinkEntityTypeEnum;
 };
 
 
 export type HolyGraphQueriesGetContentBunchGraphArgs = {
   contentBunchIds: Array<Scalars['Int']['input']>;
   contentBunchType: HolyGraphContentBunchTypeEnum;
-  stageId: Scalars['Int']['input'];
+  linkEntityId: Scalars['Int']['input'];
+  linkEntityType: HolyGraphLinkEntityTypeEnum;
 };
 
 
 export type HolyGraphQueriesGetContentBunchesByTypeArgs = {
   contentBunchType: HolyGraphContentBunchTypeEnum;
-  stageId: Scalars['Int']['input'];
+  linkEntityId: Scalars['Int']['input'];
+  linkEntityType: HolyGraphLinkEntityTypeEnum;
 };
 
 
 export type HolyGraphQueriesGetDraftGraphArgs = {
-  stageId: Scalars['Int']['input'];
+  linkEntityId: Scalars['Int']['input'];
+  linkEntityType: HolyGraphLinkEntityTypeEnum;
 };
 
 
@@ -20318,7 +20368,8 @@ export type HolyGraphQueriesGetGraphArgs = {
 
 export type HolyGraphQueriesGetPublishedGraphArgs = {
   emptyIfNotExist?: InputMaybe<Scalars['Boolean']['input']>;
-  stageId: Scalars['Int']['input'];
+  linkEntityId: Scalars['Int']['input'];
+  linkEntityType: HolyGraphLinkEntityTypeEnum;
 };
 
 
@@ -20342,28 +20393,8 @@ export type HolyGraphQueriesGetStudentStateGraphNodeArgs = {
 
 
 export type HolyGraphQueriesIsDraftGraphExistsArgs = {
-  stageId: Scalars['Int']['input'];
-};
-
-/** Связь графа и параллели */
-export type HolyGraphStage = {
-  __typename?: 'HolyGraphStage';
-  /** Комментарий к версии графа */
-  comment?: Maybe<Scalars['String']['output']>;
-  /** Перечень Id источников проектов */
-  contentBunchIds: Array<Scalars['Int']['output']>;
-  /** Тип источников проектов */
-  contentBunchType: HolyGraphContentBunchTypeEnum;
-  /** Id графа */
-  graphId: Scalars['Int']['output'];
-  /** Id параллели */
-  stageId: Scalars['Int']['output'];
-  /** Наименование параллели */
-  stageName: Scalars['String']['output'];
-  /** Дата последнего изменения */
-  updateTs?: Maybe<Scalars['DateTime']['output']>;
-  /** Автор последнего изменения */
-  updatedBy?: Maybe<Scalars['String']['output']>;
+  linkEntityId: Scalars['Int']['input'];
+  linkEntityType: HolyGraphLinkEntityTypeEnum;
 };
 
 /** Версия графа */
@@ -20377,8 +20408,10 @@ export type HolyGraphVersion = {
   createdBy?: Maybe<Scalars['String']['output']>;
   /** Id графа */
   graphId: Scalars['Int']['output'];
-  /** Id параллели */
-  stageId: Scalars['Int']['output'];
+  /** Id связанного элемента орг. структуры */
+  linkEntityId: Scalars['Int']['output'];
+  /** Тип связи с орг. структурой */
+  linkEntityType: HolyGraphLinkEntityTypeEnum;
   /** Версия графа */
   version: Scalars['Int']['output'];
 };
@@ -32591,6 +32624,7 @@ export type School21QueriesGetStageGroupS21PublicProfileArgs = {
 
 
 export type School21QueriesGetStageGroupsArgs = {
+  ignoreStageGroupsWithoutSubject?: InputMaybe<Scalars['Boolean']['input']>;
   schoolIds?: InputMaybe<Array<InputMaybe<Scalars['UUID']['input']>>>;
   stageIds?: InputMaybe<Array<InputMaybe<Scalars['ID']['input']>>>;
   textSearch?: InputMaybe<Scalars['String']['input']>;
