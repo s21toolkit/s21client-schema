@@ -378,6 +378,7 @@ export enum AcceleratorMemberStatus {
 /** Метрика Акселератора */
 export enum AcceleratorMetric {
   Csat = 'CSAT',
+  Csatsc = 'CSATSC',
   Nps = 'NPS'
 }
 
@@ -5690,6 +5691,8 @@ export type BusinessAdminMutations = {
   saveStudyPeriodSets: Array<StudyPeriodSet>;
   /** сохранение учебной программы за год */
   saveStudyProgram: StudyProgram;
+  /** Метод сохранения предметов для продукта Bootcamp */
+  saveSubjectsForBTC: Array<Subject>;
   /** Новый метод сохранения предмета(-ов) для данного образовательного учреждения с 2-мя параметрами "subjects" и "orgUnitId" */
   saveSubjectsForOrganization: Array<Subject>;
   /** Сохранение параметров расчета навыков за проверку задания */
@@ -6671,6 +6674,11 @@ export type BusinessAdminMutationsSaveStudyProgramArgs = {
 };
 
 
+export type BusinessAdminMutationsSaveSubjectsForBtcArgs = {
+  subjects: Array<SubjectInput>;
+};
+
+
 export type BusinessAdminMutationsSaveSubjectsForOrganizationArgs = {
   orgUnitId: Scalars['String']['input'];
   subjects: Array<SubjectInput>;
@@ -7451,6 +7459,8 @@ export type BusinessAdminQueries = {
   getStudyStepSubjectLearningActivities: Array<StudyStepSubjectLearningActivities>;
   /** @deprecated Use getLearningActivitySets */
   getSubjectLearningActivities: Array<LearningActivity>;
+  /** список предметов по тенанту для бизнес-администратора bootcamp */
+  getSubjects: Array<Subject>;
   /** список предметов, для которых в учебном году есть активные группы */
   getSubjectsByAcademicYearId: Array<Subject>;
   /** Получение списка предметов, принадлежащих образовательному учреждению или его тенантам */
@@ -8897,6 +8907,11 @@ export type BusinessAdminQueriesGetStudyProgramArgs = {
 export type BusinessAdminQueriesGetSubjectLearningActivitiesArgs = {
   schoolId: Scalars['UUID']['input'];
   subjectId: Scalars['ID']['input'];
+};
+
+
+export type BusinessAdminQueriesGetSubjectsArgs = {
+  textSearch?: InputMaybe<Scalars['String']['input']>;
 };
 
 
@@ -38628,6 +38643,7 @@ export type StudentMutationsSaveStudentAnswerArgs = {
   incomingAnswerContext?: InputMaybe<IncomingAnswerContextInput>;
   lessonId?: InputMaybe<Scalars['ID']['input']>;
   lessonPlanId?: InputMaybe<Scalars['ID']['input']>;
+  pathToCheck?: InputMaybe<Scalars['String']['input']>;
   reviewUserId?: InputMaybe<Scalars['ID']['input']>;
   taskId: Scalars['ID']['input'];
   widgetAnswers: Array<WidgetAnswerInput>;
