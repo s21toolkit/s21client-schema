@@ -10536,6 +10536,7 @@ export type CalendarEvent = {
   ipRange?: Maybe<Scalars['String']['output']>;
   /** Признак того, может ли быть удалено данное мероприятие */
   isCanBeDeleted?: Maybe<Scalars['Boolean']['output']>;
+  isHideByStudent?: Maybe<Scalars['Boolean']['output']>;
   /**
    * Место проведения
    * @deprecated  Use activity.location or exam.location
@@ -10800,6 +10801,17 @@ export type CalendarEventQueriesGetEventWithParticipantsArgs = {
 export type CalendarEventQueriesGetParticipantGroupIdsArgs = {
   userGroupTypeId: Scalars['Int']['input'];
   userIds: Array<Scalars['UUID']['input']>;
+};
+
+export type CalendarEventS21Mutations = {
+  __typename?: 'CalendarEventS21Mutations';
+  hideEventByStudent?: Maybe<Scalars['Boolean']['output']>;
+};
+
+
+export type CalendarEventS21MutationsHideEventByStudentArgs = {
+  eventId: Scalars['ID']['input'];
+  isHideByStudent: Scalars['Boolean']['input'];
 };
 
 export type CalendarEventS21Queries = {
@@ -25901,6 +25913,7 @@ export type Mutation = {
   btcCourse?: Maybe<BtcCourseMutations>;
   businessAdmin?: Maybe<BusinessAdminMutations>;
   calendarEvent?: Maybe<CalendarEventMutations>;
+  calendarEventS21?: Maybe<CalendarEventS21Mutations>;
   content?: Maybe<ContentMutations>;
   contentTags?: Maybe<ContentTagsMutations>;
   course?: Maybe<CourseMutations>;
@@ -33011,6 +33024,8 @@ export type School21Mutations = {
   saveStageGroupFinishDate: StageGroupFinishDate;
   /** Сохранение дефолтных значений дополнительных атрибутов задания при его создании (когда заполнено только поле "Название задания") */
   saveTaskAdditionalAttributesDefaultValues: CheckSequenceSettings;
+  /** S21. Создание приватного репозитория экзаменационного задания студентом */
+  studentBootManually: Scalars['Int']['output'];
   /** Добавление признака успешной загрузки видеозаписи проверки для уже заполненного чек-листа */
   submitFilledChecklistRecording: FilledChecklist;
   /** S21. Перевод студентов из класса в класс */
@@ -33185,6 +33200,14 @@ export type School21MutationsSaveStageGroupFinishDateArgs = {
 
 
 export type School21MutationsSaveTaskAdditionalAttributesDefaultValuesArgs = {
+  taskId: Scalars['ID']['input'];
+};
+
+
+export type School21MutationsStudentBootManuallyArgs = {
+  examEventId: Scalars['ID']['input'];
+  gitlabUserAccessLevel: GitlabUserAccessLevel;
+  studentId: Scalars['UUID']['input'];
   taskId: Scalars['ID']['input'];
 };
 
@@ -59289,6 +59312,7 @@ export const UpcomingEventFragmentDoc = gql`
   id
   start
   end
+  isHideByStudent
   bookings {
     id
     task {
@@ -61091,6 +61115,13 @@ export const CalendarDeleteEventSlotDocument = gql`
     mutation calendarDeleteEventSlot($eventSlotId: ID!) {
   student {
     deleteEventSlot(eventSlotId: $eventSlotId)
+  }
+}
+    `;
+export const HideByStudentDocument = gql`
+    mutation hideByStudent($eventId: ID!, $isHideByStudent: Boolean!) {
+  calendarEventS21 {
+    hideEventByStudent(eventId: $eventId, isHideByStudent: $isHideByStudent)
   }
 }
     `;
@@ -63144,6 +63175,9 @@ export function getSdk(client: GraphQLClient, withWrapper: SdkFunctionWrapper = 
     calendarDeleteEventSlot(variables: CalendarDeleteEventSlotMutationVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<CalendarDeleteEventSlotMutation> {
       return withWrapper((wrappedRequestHeaders) => client.request<CalendarDeleteEventSlotMutation>(CalendarDeleteEventSlotDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'calendarDeleteEventSlot', 'mutation', variables);
     },
+    hideByStudent(variables: HideByStudentMutationVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<HideByStudentMutation> {
+      return withWrapper((wrappedRequestHeaders) => client.request<HideByStudentMutation>(HideByStudentDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'hideByStudent', 'mutation', variables);
+    },
     EventsGetActivityFeedback(variables: EventsGetActivityFeedbackQueryVariables, requestHeaders?: GraphQLClientRequestHeaders): Promise<EventsGetActivityFeedbackQuery> {
       return withWrapper((wrappedRequestHeaders) => client.request<EventsGetActivityFeedbackQuery>(EventsGetActivityFeedbackDocument, variables, {...requestHeaders, ...wrappedRequestHeaders}), 'EventsGetActivityFeedback', 'query', variables);
     },
@@ -64251,6 +64285,14 @@ export type CalendarDeleteEventSlotMutationVariables = Exact<{
 
 export type CalendarDeleteEventSlotMutation = { __typename?: 'Mutation', student?: { __typename?: 'StudentMutations', deleteEventSlot: boolean } | null };
 
+export type HideByStudentMutationVariables = Exact<{
+  eventId: Scalars['ID']['input'];
+  isHideByStudent: Scalars['Boolean']['input'];
+}>;
+
+
+export type HideByStudentMutation = { __typename?: 'Mutation', calendarEventS21?: { __typename?: 'CalendarEventS21Mutations', hideEventByStudent?: boolean | null } | null };
+
 export type EventsGetActivityFeedbackQueryVariables = Exact<{
   activityEventId: Scalars['ID']['input'];
   page: PagingInput;
@@ -64770,7 +64812,7 @@ export type SaveHonorRatingsMutationVariables = Exact<{
 
 export type SaveHonorRatingsMutation = { __typename?: 'Mutation', honorRating?: { __typename?: 'HonorRatingMutations', saveStudentHonorRatings: Array<{ __typename?: 'StudentHonorRatingModel', studentHonorRatingId: string }> } | null };
 
-export type UpcomingEventFragment = { __typename?: 'CalendarEvent', id: string, start: Date, end: Date, maxStudentCount?: number | null, location?: string | null, ipRange?: string | null, eventType?: string | null, eventCode?: string | null, description: string, externalId?: number | null, currentStudentsCount?: number | null, bookings: Array<{ __typename?: 'CalendarBooking', id: string, task?: { __typename?: 'Task', id: string, goalName: string } | null }>, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, eventId: string, type: TimeSlotTypeEnum, start: Date, end: Date }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, location: string, ip?: string | null, maxStudentCount?: number | null, isVisible: boolean, name: string, goalId: string, isWaitListActive: boolean, isInWaitList?: boolean | null, currentStudentsCount: number, createDate: Date, updateDate: Date, schoolId: string, stopRegisterDate?: Date | null, isRegistered?: boolean | null, goalName: string, eventType?: string | null, registrationAccessStatus: ExamEventRegistrationAccessStatus } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', activityEventId: string, eventId: string, beginDate: Date, endDate: Date, location: string, description?: string | null, maxStudentCount?: number | null, isVisible: boolean, name: string, isWaitListActive: boolean, isInWaitList?: boolean | null, currentStudentsCount: number, createDate: Date, updateDate: Date, schoolId: string, stopRegisterDate?: Date | null, isRegistered?: boolean | null, activityType: string, eventType: string, isMandatory: boolean, status?: ParticipantEventStatus | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null };
+export type UpcomingEventFragment = { __typename?: 'CalendarEvent', id: string, start: Date, end: Date, isHideByStudent?: boolean | null, maxStudentCount?: number | null, location?: string | null, ipRange?: string | null, eventType?: string | null, eventCode?: string | null, description: string, externalId?: number | null, currentStudentsCount?: number | null, bookings: Array<{ __typename?: 'CalendarBooking', id: string, task?: { __typename?: 'Task', id: string, goalName: string } | null }>, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, eventId: string, type: TimeSlotTypeEnum, start: Date, end: Date }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, location: string, ip?: string | null, maxStudentCount?: number | null, isVisible: boolean, name: string, goalId: string, isWaitListActive: boolean, isInWaitList?: boolean | null, currentStudentsCount: number, createDate: Date, updateDate: Date, schoolId: string, stopRegisterDate?: Date | null, isRegistered?: boolean | null, goalName: string, eventType?: string | null, registrationAccessStatus: ExamEventRegistrationAccessStatus } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', activityEventId: string, eventId: string, beginDate: Date, endDate: Date, location: string, description?: string | null, maxStudentCount?: number | null, isVisible: boolean, name: string, isWaitListActive: boolean, isInWaitList?: boolean | null, currentStudentsCount: number, createDate: Date, updateDate: Date, schoolId: string, stopRegisterDate?: Date | null, isRegistered?: boolean | null, activityType: string, eventType: string, isMandatory: boolean, status?: ParticipantEventStatus | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null };
 
 export type GetUpcomingEventsQueryVariables = Exact<{
   eventCodes: Array<Scalars['String']['input']> | Scalars['String']['input'];
@@ -64779,7 +64821,7 @@ export type GetUpcomingEventsQueryVariables = Exact<{
 }>;
 
 
-export type GetUpcomingEventsQuery = { __typename?: 'Query', calendarEventS21?: { __typename?: 'CalendarEventS21Queries', getUpcomingEventsForRegistration: Array<{ __typename?: 'CalendarEvent', id: string, start: Date, end: Date, maxStudentCount?: number | null, location?: string | null, ipRange?: string | null, eventType?: string | null, eventCode?: string | null, description: string, externalId?: number | null, currentStudentsCount?: number | null, bookings: Array<{ __typename?: 'CalendarBooking', id: string, task?: { __typename?: 'Task', id: string, goalName: string } | null }>, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, eventId: string, type: TimeSlotTypeEnum, start: Date, end: Date }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, location: string, ip?: string | null, maxStudentCount?: number | null, isVisible: boolean, name: string, goalId: string, isWaitListActive: boolean, isInWaitList?: boolean | null, currentStudentsCount: number, createDate: Date, updateDate: Date, schoolId: string, stopRegisterDate?: Date | null, isRegistered?: boolean | null, goalName: string, eventType?: string | null, registrationAccessStatus: ExamEventRegistrationAccessStatus } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', activityEventId: string, eventId: string, beginDate: Date, endDate: Date, location: string, description?: string | null, maxStudentCount?: number | null, isVisible: boolean, name: string, isWaitListActive: boolean, isInWaitList?: boolean | null, currentStudentsCount: number, createDate: Date, updateDate: Date, schoolId: string, stopRegisterDate?: Date | null, isRegistered?: boolean | null, activityType: string, eventType: string, isMandatory: boolean, status?: ParticipantEventStatus | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null } | null> } | null };
+export type GetUpcomingEventsQuery = { __typename?: 'Query', calendarEventS21?: { __typename?: 'CalendarEventS21Queries', getUpcomingEventsForRegistration: Array<{ __typename?: 'CalendarEvent', id: string, start: Date, end: Date, isHideByStudent?: boolean | null, maxStudentCount?: number | null, location?: string | null, ipRange?: string | null, eventType?: string | null, eventCode?: string | null, description: string, externalId?: number | null, currentStudentsCount?: number | null, bookings: Array<{ __typename?: 'CalendarBooking', id: string, task?: { __typename?: 'Task', id: string, goalName: string } | null }>, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, eventId: string, type: TimeSlotTypeEnum, start: Date, end: Date }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, location: string, ip?: string | null, maxStudentCount?: number | null, isVisible: boolean, name: string, goalId: string, isWaitListActive: boolean, isInWaitList?: boolean | null, currentStudentsCount: number, createDate: Date, updateDate: Date, schoolId: string, stopRegisterDate?: Date | null, isRegistered?: boolean | null, goalName: string, eventType?: string | null, registrationAccessStatus: ExamEventRegistrationAccessStatus } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', activityEventId: string, eventId: string, beginDate: Date, endDate: Date, location: string, description?: string | null, maxStudentCount?: number | null, isVisible: boolean, name: string, isWaitListActive: boolean, isInWaitList?: boolean | null, currentStudentsCount: number, createDate: Date, updateDate: Date, schoolId: string, stopRegisterDate?: Date | null, isRegistered?: boolean | null, activityType: string, eventType: string, isMandatory: boolean, status?: ParticipantEventStatus | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null } | null> } | null };
 
 export type GetP2pReviewModeSettingsByStudentIdQueryVariables = Exact<{
   studentId: Scalars['UUID']['input'];
@@ -64821,14 +64863,14 @@ export type SubscribeToEventMutationVariables = Exact<{
 }>;
 
 
-export type SubscribeToEventMutation = { __typename?: 'Mutation', student?: { __typename?: 'StudentMutations', subscribeToEvent: { __typename?: 'CalendarEvent', id: string, start: Date, end: Date, maxStudentCount?: number | null, location?: string | null, ipRange?: string | null, eventType?: string | null, eventCode?: string | null, description: string, externalId?: number | null, currentStudentsCount?: number | null, bookings: Array<{ __typename?: 'CalendarBooking', id: string, task?: { __typename?: 'Task', id: string, goalName: string } | null }>, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, eventId: string, type: TimeSlotTypeEnum, start: Date, end: Date }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, location: string, ip?: string | null, maxStudentCount?: number | null, isVisible: boolean, name: string, goalId: string, isWaitListActive: boolean, isInWaitList?: boolean | null, currentStudentsCount: number, createDate: Date, updateDate: Date, schoolId: string, stopRegisterDate?: Date | null, isRegistered?: boolean | null, goalName: string, eventType?: string | null, registrationAccessStatus: ExamEventRegistrationAccessStatus } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', activityEventId: string, eventId: string, beginDate: Date, endDate: Date, location: string, description?: string | null, maxStudentCount?: number | null, isVisible: boolean, name: string, isWaitListActive: boolean, isInWaitList?: boolean | null, currentStudentsCount: number, createDate: Date, updateDate: Date, schoolId: string, stopRegisterDate?: Date | null, isRegistered?: boolean | null, activityType: string, eventType: string, isMandatory: boolean, status?: ParticipantEventStatus | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null } } | null };
+export type SubscribeToEventMutation = { __typename?: 'Mutation', student?: { __typename?: 'StudentMutations', subscribeToEvent: { __typename?: 'CalendarEvent', id: string, start: Date, end: Date, isHideByStudent?: boolean | null, maxStudentCount?: number | null, location?: string | null, ipRange?: string | null, eventType?: string | null, eventCode?: string | null, description: string, externalId?: number | null, currentStudentsCount?: number | null, bookings: Array<{ __typename?: 'CalendarBooking', id: string, task?: { __typename?: 'Task', id: string, goalName: string } | null }>, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, eventId: string, type: TimeSlotTypeEnum, start: Date, end: Date }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, location: string, ip?: string | null, maxStudentCount?: number | null, isVisible: boolean, name: string, goalId: string, isWaitListActive: boolean, isInWaitList?: boolean | null, currentStudentsCount: number, createDate: Date, updateDate: Date, schoolId: string, stopRegisterDate?: Date | null, isRegistered?: boolean | null, goalName: string, eventType?: string | null, registrationAccessStatus: ExamEventRegistrationAccessStatus } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', activityEventId: string, eventId: string, beginDate: Date, endDate: Date, location: string, description?: string | null, maxStudentCount?: number | null, isVisible: boolean, name: string, isWaitListActive: boolean, isInWaitList?: boolean | null, currentStudentsCount: number, createDate: Date, updateDate: Date, schoolId: string, stopRegisterDate?: Date | null, isRegistered?: boolean | null, activityType: string, eventType: string, isMandatory: boolean, status?: ParticipantEventStatus | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null } } | null };
 
 export type UnsubscribeFromEventMutationVariables = Exact<{
   eventId: Scalars['ID']['input'];
 }>;
 
 
-export type UnsubscribeFromEventMutation = { __typename?: 'Mutation', student?: { __typename?: 'StudentMutations', unsubscribeFromEvent: { __typename?: 'CalendarEvent', id: string, start: Date, end: Date, maxStudentCount?: number | null, location?: string | null, ipRange?: string | null, eventType?: string | null, eventCode?: string | null, description: string, externalId?: number | null, currentStudentsCount?: number | null, bookings: Array<{ __typename?: 'CalendarBooking', id: string, task?: { __typename?: 'Task', id: string, goalName: string } | null }>, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, eventId: string, type: TimeSlotTypeEnum, start: Date, end: Date }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, location: string, ip?: string | null, maxStudentCount?: number | null, isVisible: boolean, name: string, goalId: string, isWaitListActive: boolean, isInWaitList?: boolean | null, currentStudentsCount: number, createDate: Date, updateDate: Date, schoolId: string, stopRegisterDate?: Date | null, isRegistered?: boolean | null, goalName: string, eventType?: string | null, registrationAccessStatus: ExamEventRegistrationAccessStatus } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', activityEventId: string, eventId: string, beginDate: Date, endDate: Date, location: string, description?: string | null, maxStudentCount?: number | null, isVisible: boolean, name: string, isWaitListActive: boolean, isInWaitList?: boolean | null, currentStudentsCount: number, createDate: Date, updateDate: Date, schoolId: string, stopRegisterDate?: Date | null, isRegistered?: boolean | null, activityType: string, eventType: string, isMandatory: boolean, status?: ParticipantEventStatus | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null } } | null };
+export type UnsubscribeFromEventMutation = { __typename?: 'Mutation', student?: { __typename?: 'StudentMutations', unsubscribeFromEvent: { __typename?: 'CalendarEvent', id: string, start: Date, end: Date, isHideByStudent?: boolean | null, maxStudentCount?: number | null, location?: string | null, ipRange?: string | null, eventType?: string | null, eventCode?: string | null, description: string, externalId?: number | null, currentStudentsCount?: number | null, bookings: Array<{ __typename?: 'CalendarBooking', id: string, task?: { __typename?: 'Task', id: string, goalName: string } | null }>, eventSlots: Array<{ __typename?: 'CalendarTimeSlot', id: string, eventId: string, type: TimeSlotTypeEnum, start: Date, end: Date }>, exam?: { __typename?: 'Exam', examId: string, eventId: string, beginDate: Date, endDate: Date, location: string, ip?: string | null, maxStudentCount?: number | null, isVisible: boolean, name: string, goalId: string, isWaitListActive: boolean, isInWaitList?: boolean | null, currentStudentsCount: number, createDate: Date, updateDate: Date, schoolId: string, stopRegisterDate?: Date | null, isRegistered?: boolean | null, goalName: string, eventType?: string | null, registrationAccessStatus: ExamEventRegistrationAccessStatus } | null, studentCodeReview?: { __typename?: 'StudentCodeReview', studentGoalId: string } | null, activity?: { __typename?: 'ActivityEvent', activityEventId: string, eventId: string, beginDate: Date, endDate: Date, location: string, description?: string | null, maxStudentCount?: number | null, isVisible: boolean, name: string, isWaitListActive: boolean, isInWaitList?: boolean | null, currentStudentsCount: number, createDate: Date, updateDate: Date, schoolId: string, stopRegisterDate?: Date | null, isRegistered?: boolean | null, activityType: string, eventType: string, isMandatory: boolean, status?: ParticipantEventStatus | null, organizers?: Array<{ __typename?: 'User', id: string, login?: string | null }> | null } | null, penalty?: { __typename?: 'Penalty', comment?: string | null, id?: string | null, duration: number, status: string, startTime?: Date | null, createTime: Date, reasonId: string, penaltySlot?: { __typename?: 'PenaltySlot', currentStudentsCount?: number | null, description?: string | null, duration?: number | null, startTime?: Date | null, id: string, endTime?: Date | null } | null } | null } } | null };
 
 export type GetImportedLanguagesForCurrentVersionQueryVariables = Exact<{
   taskId: Scalars['ID']['input'];
