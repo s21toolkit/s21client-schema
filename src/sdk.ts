@@ -5319,7 +5319,12 @@ export type BtcAccessTagToUserModel = {
   expiresAt?: Maybe<Scalars['Date']['output']>;
   /** Является ли тег временным для пользователя */
   isTemporary: Scalars['Boolean']['output'];
-  /** Идентификатор пользователя */
+  /** Идентификатор ученика */
+  studentId?: Maybe<Scalars['UUID']['output']>;
+  /**
+   * Идентификатор пользователя
+   * @deprecated Заглушен, необходимо использовать studentId
+   */
   userId: Scalars['UUID']['output'];
 };
 
@@ -5334,6 +5339,29 @@ export enum BtcAccessTagsTypeModel {
   Internal = 'INTERNAL'
 }
 
+/** Определение области обновления назначенных курсов */
+export enum BtcAssignCourseRefreshScope {
+  /** Для завершенных */
+  Completed = 'COMPLETED',
+  /** Для назначенных курсов, по которым еще не было ни одной закрытой задачи */
+  New = 'NEW',
+  /** Для курсов, находящихся в процессе изучения (есть хотя бы одна закрытая задача) */
+  Progress = 'PROGRESS'
+}
+
+export type BtcCertificateTemplateToStudyModel = {
+  __typename?: 'BtcCertificateTemplateToStudyModel';
+  /** Шаблон сертификата для выдачи */
+  certificateTemplate?: Maybe<CertificateTemplateModel>;
+  /** ID записи */
+  id: Scalars['ID']['output'];
+  /** Тип сущности, к которой привязан сертификат */
+  studyEntityType?: Maybe<StudyEntityTypeEnum>;
+  /** ID сущности, к которой привязан сертификат */
+  studyId: Scalars['ID']['output'];
+  studyName?: Maybe<Scalars['String']['output']>;
+};
+
 /** Фильтр для поиска курсов */
 export type BtcCourseFilterInputModel = {
   /** С ограничением по времени (да / нет) */
@@ -5342,7 +5370,7 @@ export type BtcCourseFilterInputModel = {
   accessTagIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** Автор */
   authorUserIds?: InputMaybe<Array<Scalars['UUID']['input']>>;
-  /** Идентификаторы курсов из АС Пульс */
+  /** Идентификаторы курсов из АС Пульс (должен быть тип UUID) */
   catalogItemIds?: InputMaybe<Array<Scalars['String']['input']>>;
   /** С сертификатом (да / нет) */
   certificateAvailable?: InputMaybe<Scalars['Boolean']['input']>;
@@ -5478,7 +5506,7 @@ export type BtcCourseInputModel = {
   accessTags?: InputMaybe<Array<BtcAccessTagInputModel>>;
   /** Идентификатор автора курса */
   authorUserId: Scalars['UUID']['input'];
-  /** идентификатор курса из АС Пульс */
+  /** идентификатор курса из АС Пульс (должен быть тип UUID) */
   catalogItemId?: InputMaybe<Scalars['String']['input']>;
   /** Идентификатор */
   courseId?: InputMaybe<Scalars['ID']['input']>;
@@ -5513,8 +5541,10 @@ export type BtcCourseModel = {
   accessTags?: Maybe<Array<BtcAccessTagModel>>;
   /** Идентификатор автора курса */
   authorUserId: Scalars['UUID']['output'];
-  /** идентификатор курса из АС Пульс */
+  /** идентификатор курса из АС Пульс (должен быть тип UUID) */
   catalogItemId?: Maybe<Scalars['String']['output']>;
+  /** Сертификат выдаваемый за закрытие курса */
+  certificateTemplate?: Maybe<CertificateTemplateModel>;
   /** Идентификатор */
   courseId: Scalars['ID']['output'];
   /** Описание */
@@ -5553,6 +5583,7 @@ export type BtcCourseMutations = {
    * @deprecated Необходимо использовать changePlanDatesAssignTrajectory или changePlanDatesAssignCourse
    */
   changePlanDatesAssignCourse: Array<Scalars['UUID']['output']>;
+  /** @deprecated Необходимо использовать changeTaskStatusByStudentIdAndTaskId */
   changePlanDatesAssignCourseByStudentIdsAndCourseId: Array<Scalars['UUID']['output']>;
   /**
    *  Назначение курса на текущего студента. Возвращает идентификатор студента, если назначение прошло успешно
@@ -5563,9 +5594,18 @@ export type BtcCourseMutations = {
    *  Возвращает список идентификаторов студентов, для которых смена прошла успешно
    */
   changePlanDatesAssignTrajectory: Array<Scalars['UUID']['output']>;
-  /** Изменение статуса задачи */
+  /** Изменение состояний событий о прогрессе прохождения курсов/траекторий для последующей обработки */
+  changePulseEventStatus: Scalars['Int']['output'];
+  /** @deprecated Необходимо использовать changeTaskStatusByStudentIdAndTaskId */
   changeTaskStatus: TaskStatusEnum;
+  changeTaskStatusByStudentIdAndTaskId: TaskStatusEnum;
   changeTaskStatusByStudentTaskId: TaskStatusEnum;
+  /** Проверка доступа и назначение на пользователя курса по course_id */
+  checkUserAccessToCourse: BtcStudentCourseModel;
+  /** Обновление данных по назначенным курсам на основании обновленного курса */
+  refreshAssignCourse?: Maybe<Array<Scalars['UUID']['output']>>;
+  /** Обновление данных по назначенным курсам на основании обновленного курса для указанных студентов */
+  refreshAssignCourseByStudentIds?: Maybe<Array<Scalars['UUID']['output']>>;
   /** Сохранение курса */
   saveCourse: BtcCourseModel;
   /** Сохранение траектории */
@@ -5613,8 +5653,21 @@ export type BtcCourseMutationsChangePlanDatesAssignTrajectoryArgs = {
 };
 
 
+export type BtcCourseMutationsChangePulseEventStatusArgs = {
+  filter: PulseEventFilterInputModel;
+  statusMapping: Array<MatchPulseEventStatusInputModel>;
+};
+
+
 export type BtcCourseMutationsChangeTaskStatusArgs = {
   courseId: Scalars['ID']['input'];
+  studentId: Scalars['UUID']['input'];
+  taskId: Scalars['ID']['input'];
+  taskStatus: TaskStatusEnum;
+};
+
+
+export type BtcCourseMutationsChangeTaskStatusByStudentIdAndTaskIdArgs = {
   studentId: Scalars['UUID']['input'];
   taskId: Scalars['ID']['input'];
   taskStatus: TaskStatusEnum;
@@ -5627,7 +5680,26 @@ export type BtcCourseMutationsChangeTaskStatusByStudentTaskIdArgs = {
 };
 
 
+export type BtcCourseMutationsCheckUserAccessToCourseArgs = {
+  courseId: Scalars['ID']['input'];
+};
+
+
+export type BtcCourseMutationsRefreshAssignCourseArgs = {
+  courseId: Scalars['ID']['input'];
+  mode: Array<BtcAssignCourseRefreshScope>;
+};
+
+
+export type BtcCourseMutationsRefreshAssignCourseByStudentIdsArgs = {
+  courseId: Scalars['ID']['input'];
+  mode: Array<BtcAssignCourseRefreshScope>;
+  studentIds: Array<Scalars['UUID']['input']>;
+};
+
+
 export type BtcCourseMutationsSaveCourseArgs = {
+  certificateTemplate?: InputMaybe<CertificateTemplateInputModel>;
   course?: InputMaybe<BtcCourseInputModel>;
 };
 
@@ -5638,10 +5710,14 @@ export type BtcCourseMutationsSaveTrajectoryArgs = {
 
 export type BtcCourseQueries = {
   __typename?: 'BtcCourseQueries';
+  /** Получение количества курсов доступных для назначения на текущего пользователя */
+  countAvailableCourses: Scalars['Int']['output'];
   /** Получение количества назначений курсов удовлетворяющих данным фильтра */
   countCourseAssignments: Scalars['Int']['output'];
   /** Получение количества курсов удовлетворяющих данным фильтра */
   countCoursesByFilter: Scalars['Int']['output'];
+  /** Получение количества событий по фильтру */
+  countPulseEvents: Scalars['Int']['output'];
   /** Получение количества траекторий удовлетворяющих данным фильтра */
   countTrajectoriesByFilter: Scalars['Int']['output'];
   /** Получение количества назначений траекторий удовлетворяющих данным фильтра */
@@ -5650,12 +5726,27 @@ export type BtcCourseQueries = {
   findCourseAssignments: Array<Maybe<BtcStudentCourseModel>>;
   /** Получение списка курсов по данным фильтра */
   findCoursesByFilter: Array<BtcCourseModel>;
+  /**
+   * События о прогрессе прохождения курсов/траекторий
+   * Получение списка событий по фильтру
+   */
+  findPulseEvents: Array<PulseEventModel>;
   /** Получение списка траекторий по данным фильтра */
   findTrajectoriesByFilter: Array<BtcTrajectoryModel>;
   /** Получение списка назначений траекторий по фильтру */
   findTrajectoryAssignments: Array<Maybe<BtcStudentTrajectoryModel>>;
+  /** Получить курсе доступные для назначения на текущего пользователя */
+  getAvailableCourses: Array<BtcCourseModel>;
   /** Получение курса по идентификатору */
   getCourseById: BtcCourseModel;
+  /** Получить курс назначенный на текущего пользователя по идентификатору курса */
+  getMyCourseByCourseId?: Maybe<BtcStudentCourseModel>;
+  /** Получить курсы назначенные на текущего пользователя */
+  getMyCourses: Array<Maybe<BtcStudentCourseModel>>;
+  /** Получить траектории назначенные на текущего пользователя */
+  getMyTrajectories: Array<Maybe<BtcStudentTrajectoryModel>>;
+  /** Получить траекторию назначенную на текущего пользователя по идентификатору траектории */
+  getMyTrajectoryByTrajectoryId?: Maybe<BtcStudentTrajectoryModel>;
   /** Получение траектории по идентификатору */
   getTrajectoryById: BtcTrajectoryModel;
 };
@@ -5668,6 +5759,11 @@ export type BtcCourseQueriesCountCourseAssignmentsArgs = {
 
 export type BtcCourseQueriesCountCoursesByFilterArgs = {
   filter: BtcCourseFilterInputModel;
+};
+
+
+export type BtcCourseQueriesCountPulseEventsArgs = {
+  filter?: InputMaybe<PulseEventFilterInputModel>;
 };
 
 
@@ -5693,6 +5789,12 @@ export type BtcCourseQueriesFindCoursesByFilterArgs = {
 };
 
 
+export type BtcCourseQueriesFindPulseEventsArgs = {
+  filter: PulseEventFilterInputModel;
+  page: PagingInput;
+};
+
+
 export type BtcCourseQueriesFindTrajectoriesByFilterArgs = {
   filter: BtcTrajectoryFilterInputModel;
   page: PagingInput;
@@ -5705,8 +5807,23 @@ export type BtcCourseQueriesFindTrajectoryAssignmentsArgs = {
 };
 
 
+export type BtcCourseQueriesGetAvailableCoursesArgs = {
+  page: PagingInput;
+};
+
+
 export type BtcCourseQueriesGetCourseByIdArgs = {
   courseId: Scalars['ID']['input'];
+};
+
+
+export type BtcCourseQueriesGetMyCourseByCourseIdArgs = {
+  courseId: Scalars['ID']['input'];
+};
+
+
+export type BtcCourseQueriesGetMyTrajectoryByTrajectoryIdArgs = {
+  trajectoryId: Scalars['ID']['input'];
 };
 
 
@@ -5751,6 +5868,27 @@ export type BtcExternalTeacherModel = {
   stageGroupIds?: Maybe<Array<Scalars['ID']['output']>>;
   /** Идентификатор пользователя */
   userId: Scalars['UUID']['output'];
+};
+
+export type BtcGetUserFilterModel = {
+  /** IDs тег доступа назначенных на ученика */
+  accessTags?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** IDs Bootcamp мастеров учеников */
+  bmIds?: InputMaybe<Array<Scalars['UUID']['input']>>;
+  /** IDs городов учеников */
+  cityIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Фильтр по дате начала обучения (левая граница) */
+  dateFrom?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Фильтр по дате начала обучения (правая граница) */
+  dateTo?: InputMaybe<Scalars['DateTime']['input']>;
+  /** Пагинация */
+  paging: PagingInput;
+  /** IDs классов ученика */
+  stageGroupIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Поиск ученика по фио/логи/email */
+  textSearch?: InputMaybe<Scalars['String']['input']>;
+  /** Slugs траекторий учеников */
+  trajectorySlugs?: InputMaybe<Array<Scalars['String']['input']>>;
 };
 
 /** Краткая информация по созданию/изменению */
@@ -6058,6 +6196,34 @@ export type BtcStudyDeadlineModel = {
   planStartDate?: Maybe<Scalars['Date']['output']>;
 };
 
+export type BtcStudyInfoModel = {
+  __typename?: 'BtcStudyInfoModel';
+  /** Bootcamp мастер ученика */
+  bootcampMaster?: Maybe<BootcampMasterModel>;
+  /** Список возможных к выдаче сертификатов ученику */
+  certificateTemplates: Array<CertificateTemplateModel>;
+  certificatesOfParticipation: Array<CertificateOfParticipation>;
+  /** Город обучения */
+  city?: Maybe<Scalars['String']['output']>;
+  /** Флаг, указывающий, что Буткемп-мастер не определен для ученика */
+  isBmMasterUndefined: Scalars['Boolean']['output'];
+  /** Формат обучения */
+  isStudyOnline?: Maybe<Scalars['Boolean']['output']>;
+  /**
+   * Список выданных сертификатов ученику
+   * @deprecated Переход на курсы. Используйте certificateTemplates
+   */
+  issuedCertificates: Array<IssuedCertificateModel>;
+  /** Id класса ученика */
+  stageGroup?: Maybe<StageGroup>;
+  /** Student id пользователя */
+  studentId: Scalars['UUID']['output'];
+  /** IDs траекторий студентов */
+  studentTrajectories: Array<StudentAssignedTrajectoryModel>;
+  /** WelcomePack ученика */
+  welcomePack?: Maybe<WelcomePackModel>;
+};
+
 /** Статус траектории или курса IT Bootcamp */
 export enum BtcStudyStatus {
   /** Черновик */
@@ -6208,12 +6374,14 @@ export type BtcTrajectoryCourseModel = {
 export type BtcTrajectoryFilterInputModel = {
   /** Список идентификаторов тегов доступа */
   accessTagIds?: InputMaybe<Array<Scalars['ID']['input']>>;
-  /** Идентификаторы курсов из АС Пульс */
+  /** Идентификаторы курсов из АС Пульс (должен быть тип UUID) */
   catalogItemIds?: InputMaybe<Array<Scalars['String']['input']>>;
   /** Курсы */
   courseIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** классы */
   stageGroupIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Статус */
+  statuses?: InputMaybe<Array<BtcStudyStatus>>;
   /** Теги */
   tags?: InputMaybe<Array<Scalars['String']['input']>>;
   /** Идентификаторы траекторий */
@@ -6236,7 +6404,7 @@ export type BtcTrajectoryInputModel = {
   accessTags?: InputMaybe<Array<BtcAccessTagInputModel>>;
   /** Идентификатор автора курса */
   authorUserId: Scalars['UUID']['input'];
-  /** идентификатор курса из АС Пульс */
+  /** идентификатор курса из АС Пульс (должен быть тип UUID) */
   catalogItemId?: InputMaybe<Scalars['String']['input']>;
   /** Список курсов, входящих в траекторию */
   courses?: InputMaybe<Array<BtcTrajectoryCourseInputModel>>;
@@ -6273,7 +6441,7 @@ export type BtcTrajectoryModel = {
   accessTags?: Maybe<Array<BtcAccessTagModel>>;
   /** Идентификатор автора курса */
   authorUserId: Scalars['UUID']['output'];
-  /** идентификатор курса из АС Пульс */
+  /** идентификатор курса из АС Пульс (должен быть тип UUID) */
   catalogItemId?: Maybe<Scalars['String']['output']>;
   /** Список курсов, входящих в траекторию */
   courses?: Maybe<Array<BtcTrajectoryCourseModel>>;
@@ -6299,6 +6467,38 @@ export type BtcTrajectoryModel = {
   trajectoryName: Scalars['String']['output'];
   /** Ссылка на скин траектории */
   trajectorySkin?: Maybe<Scalars['String']['output']>;
+};
+
+export type BtcUserModel = {
+  __typename?: 'BtcUserModel';
+  /** Дата рождения пользователя */
+  birthdayDate?: Maybe<Scalars['Date']['output']>;
+  /** Теги доступа казанные для данного пользователя */
+  btcAccessTags?: Maybe<Array<BtcAccessTagToUserModel>>;
+  /** Дата создания уз */
+  createTs: Scalars['Date']['output'];
+  /** Email пользователя */
+  email?: Maybe<Scalars['String']['output']>;
+  /** Указатель на подтверждение email */
+  emailConfirmed: Scalars['Boolean']['output'];
+  /** Имя пользователя */
+  firstName: Scalars['String']['output'];
+  /** Полное ФИО пользователя */
+  fullName: Scalars['String']['output'];
+  /** Дата последнего входа */
+  lastLoginTs?: Maybe<Scalars['DateTime']['output']>;
+  /** Фамилия пользователя */
+  lastName: Scalars['String']['output'];
+  /** Отчество пользователя */
+  middleName?: Maybe<Scalars['String']['output']>;
+  /** Мобильный телефон пользователя */
+  mobilePhone?: Maybe<Scalars['String']['output']>;
+  /** student_id пользователя */
+  studentId?: Maybe<Scalars['UUID']['output']>;
+  /** Информация по обучению пользователя */
+  studyInfo?: Maybe<BtcStudyInfoModel>;
+  /** user_id пользователя */
+  userId: Scalars['UUID']['output'];
 };
 
 export type Building = {
@@ -6548,8 +6748,13 @@ export type BusinessAdminMutations = {
   graduateStudents: StageGroup;
   /** Обработка всех дедлайнов */
   handleAllProjectDeadlines?: Maybe<Scalars['Boolean']['output']>;
-  /** Создание новой записи в student_whiteList */
+  /**
+   * Создание новой записи в student_whiteList
+   * @deprecated Использовать insertNewStudentInWhitelist
+   */
   insertNewStudent?: Maybe<Scalars['Boolean']['output']>;
+  /** Создание новой записи о студенте в таблице whitelist */
+  insertNewStudentInWhitelist: StudentWhiteListModel;
   /** Запись факта выдачи Welcome Pack */
   issuedWelcomePack: WelcomePackModel;
   /** Ручное завершение экзамена для всех студентов подписанных на экзамен */
@@ -6596,8 +6801,12 @@ export type BusinessAdminMutations = {
    */
   retryS21ClassPlanSavingWithCurrentVersion: Scalars['Boolean']['output'];
   revertS21ClassPlanToLastSuccessVersion: Scalars['Boolean']['output'];
+  /** Сохранение, редактирование и архивирование тегов доступа */
+  saveAndUpdateBtcAccessTags: Array<BtcAccessTagModel>;
   /** Сохранение новых тегов доступа */
   saveBtcAccessTags: Array<BtcAccessTagModel>;
+  /** Запись/обновление информации об учениках в Bootcamp */
+  saveBtcStudentInfo: Array<BtcStudentsInfoModel>;
   /** создание здания */
   saveBuilding: Building;
   /** Изменение проектов в плане на класс */
@@ -6685,7 +6894,10 @@ export type BusinessAdminMutations = {
   substituteAndDeleteTeacherRole: Scalars['Boolean']['output'];
   /** @deprecated use school21 mutation */
   unfreezeStudents?: Maybe<ExpelResult>;
-  /** Изменение признака разрешения для студента в student_whiteList */
+  /**
+   * Изменение признака разрешения для студента в student_whiteList
+   * @deprecated Использовать updateStudentWhitelist
+   */
   updateAllowedStatusByMobilePhoneOrEmailOrUtmSource?: Maybe<Scalars['Boolean']['output']>;
   updateBuilding: Building;
   /** Обновление выданного сертификата ученику */
@@ -6713,6 +6925,8 @@ export type BusinessAdminMutations = {
   /** Обновление дистанционных периодов (перегенерация планов) */
   updatePeriodLessonPlansByIds: Array<PeriodLessonPlanExtended>;
   updateStageGroupsForTimeSlotSet?: Maybe<Scalars['Boolean']['output']>;
+  /** Обновляет запись Student Whitelist */
+  updateStudentWhitelist: StudentWhiteListModel;
   /**
    * Обновление драфта расписания
    * @deprecated Use createTimetableDraftLessons/updateTimetableDraftLessons/deleteTimetableDraftLessons instead
@@ -7380,6 +7594,11 @@ export type BusinessAdminMutationsInsertNewStudentArgs = {
 };
 
 
+export type BusinessAdminMutationsInsertNewStudentInWhitelistArgs = {
+  studentWhiteListInputModel: StudentWhiteListInputModel;
+};
+
+
 export type BusinessAdminMutationsIssuedWelcomePackArgs = {
   organisationName: Scalars['String']['input'];
   personnelNumber: Scalars['ID']['input'];
@@ -7486,8 +7705,18 @@ export type BusinessAdminMutationsRevertS21ClassPlanToLastSuccessVersionArgs = {
 };
 
 
+export type BusinessAdminMutationsSaveAndUpdateBtcAccessTagsArgs = {
+  btcAccessTags: Array<BtcAccessTagInputModel>;
+};
+
+
 export type BusinessAdminMutationsSaveBtcAccessTagsArgs = {
   btcAccessTags: Array<BtcAccessTagInputModel>;
+};
+
+
+export type BusinessAdminMutationsSaveBtcStudentInfoArgs = {
+  studentsInfo: Array<BtcStudentsInfoInputModel>;
 };
 
 
@@ -7837,6 +8066,11 @@ export type BusinessAdminMutationsUpdateStageGroupsForTimeSlotSetArgs = {
   academicYearId: Scalars['ID']['input'];
   stageGroupIds: Array<Scalars['ID']['input']>;
   timeSlotSetId: Scalars['ID']['input'];
+};
+
+
+export type BusinessAdminMutationsUpdateStudentWhitelistArgs = {
+  studentWhiteListInputModel: StudentWhiteListInputModel;
 };
 
 
@@ -8421,6 +8655,8 @@ export type BusinessAdminQueries = {
   getStudentsMarksSubjectsDetailed: StudentFinalMarkSubjectsModel;
   /** Отчет "Итоговые оценки. Детальный" по ученику и всем предметам с датами */
   getStudentsMarksSubjectsDetailedByDates: StudentFinalMarkSubjectsModel;
+  /** Получение прогресса студентов по их траекториям */
+  getStudentsProgressBtc: Array<StudentTrajectoryProgressModel>;
   /** получение списка студентов класса вместе с ГКПП по классу и предмету */
   getStudentsWithStageSubjectGroupByFilter: Array<StudentWithStageSubjectGroup>;
   getStudyPeriod: StudyPeriod;
@@ -8516,6 +8752,8 @@ export type BusinessAdminQueries = {
    * Фильтры: роли - только учитель, ученик, БА и только в текущей школе
    */
   getUsers: Array<Maybe<User>>;
+  /** Получение информации по пользователям Bootcamp */
+  getUsersBtc: Array<BtcUserModel>;
   /** Запрос пользователей с указанной функциональной ролью */
   getUsersByFunctionalRole: Array<Maybe<User>>;
   /** количество записей для getUsers */
@@ -9853,6 +10091,12 @@ export type BusinessAdminQueriesGetStudentsMarksSubjectsDetailedByDatesArgs = {
 };
 
 
+export type BusinessAdminQueriesGetStudentsProgressBtcArgs = {
+  isByPrimary: Scalars['Boolean']['input'];
+  studentIds: Array<Scalars['UUID']['input']>;
+};
+
+
 export type BusinessAdminQueriesGetStudentsWithStageSubjectGroupByFilterArgs = {
   pagingInput: PagingInput;
   stageGroupId: Scalars['ID']['input'];
@@ -10151,6 +10395,11 @@ export type BusinessAdminQueriesGetUsersArgs = {
   showRolesOnlyForFilteredSchools?: InputMaybe<Scalars['Boolean']['input']>;
   sortingFields?: InputMaybe<Array<InputMaybe<SortingField>>>;
   textSearch?: InputMaybe<Scalars['String']['input']>;
+};
+
+
+export type BusinessAdminQueriesGetUsersBtcArgs = {
+  filter: BtcGetUserFilterModel;
 };
 
 
@@ -11233,6 +11482,40 @@ export type CertificateOfParticipationInfoModel = {
   trajectoryProgress: Scalars['Int']['output'];
   /** Название траектории для выдачи свидетельства (может не совпадать с trajectoryTemplateName) */
   trajectoryTitle: Scalars['String']['output'];
+};
+
+export type CertificateTemplateInputModel = {
+  /** Необходимый уровень прохождения для получения сертификата */
+  achieveLevel?: InputMaybe<Scalars['Int']['input']>;
+  /** Наименование курса */
+  courseTitle: Scalars['String']['input'];
+  /** Наименование программы */
+  programTitle: Scalars['String']['input'];
+  /** ID шаблона сертификата */
+  templateId?: InputMaybe<Scalars['ID']['input']>;
+};
+
+export type CertificateTemplateModel = {
+  __typename?: 'CertificateTemplateModel';
+  /** Необходимый уровень прохождения для получения сертификата */
+  achieveLevel: Scalars['Int']['output'];
+  /** Название траектории/курса по которому происходит выдача свидетельства (может не совпадать с trajectoryTemplateName) */
+  curseTitle: Scalars['String']['output'];
+  /** Плановая трудоемкость в часах */
+  planLaboriousness: Scalars['Int']['output'];
+  /** Титул свидетельства */
+  programTitle: Scalars['String']['output'];
+  /** ID шаблона */
+  templateId: Scalars['ID']['output'];
+};
+
+/** Информация по всем сертификатам ученика (возможным к получению / выданным) */
+export type CertificatesForStudentModel = {
+  __typename?: 'CertificatesForStudentModel';
+  /** Список выданных сертификатов ученику */
+  issuedCertificates: Array<IssuedCertificateModel>;
+  /** Информация по возможным к получению сертификатам */
+  notIssuedCertificates: Array<StudentCertificateWithProgressModel>;
 };
 
 export type ChallengeSubjectCategory = {
@@ -22006,7 +22289,13 @@ export type IssuedCertificateModel = {
    * @deprecated Под удаление.
    */
   certificateId: Scalars['ID']['output'];
+  /** @deprecated Под удаление. */
   certificateInfo: CertificateOfParticipation;
+  /** Шаблон сертификата для выдачи */
+  certificateTemplate?: Maybe<CertificateTemplateModel>;
+  certificateTemplateToStudy?: Maybe<BtcCertificateTemplateToStudyModel>;
+  /** ID шаблона и информации по обучению */
+  certificateTemplateToStudyId: Scalars['ID']['output'];
   /** Плановая дата начала траектории */
   dateEnd: Scalars['Date']['output'];
   /** Плановая дата окончания траектории */
@@ -24345,6 +24634,12 @@ export type MassiveLocalCourseAssignInput = {
   startDate?: InputMaybe<Scalars['DateTime']['input']>;
   /** Дата/время начала регистрации на курс */
   startRegisterDate?: InputMaybe<Scalars['DateTime']['input']>;
+};
+
+/** Соответствие статусов для их модификации */
+export type MatchPulseEventStatusInputModel = {
+  sourceStatus: PulseEventStatus;
+  targetStatus: PulseEventStatus;
 };
 
 /** Ответ с бэка на виджет "Таблица (выбор одного)" */
@@ -30068,6 +30363,90 @@ export enum PublishContentResult {
   Success = 'SUCCESS',
   /** публикация в целом успешная, но требуется реакция пользователя */
   SuccessWithMessage = 'SUCCESS_WITH_MESSAGE'
+}
+
+/** Фильтр по поиска событий о прогрессе */
+export type PulseEventFilterInputModel = {
+  /** Список идентификаторов курсов/траекторий */
+  courseIds?: InputMaybe<Array<Scalars['ID']['input']>>;
+  /** Временной интервал */
+  eventInterval?: InputMaybe<PulseEventIntervalInputModel>;
+  /** Список типов событий */
+  eventTypes?: InputMaybe<Array<PulseEventType>>;
+  /** Список статусов */
+  statuses?: InputMaybe<Array<PulseEventStatus>>;
+  /** Список идентификаторов студентов */
+  studentIds?: InputMaybe<Array<Scalars['UUID']['input']>>;
+};
+
+export type PulseEventIntervalInputModel = {
+  /** Дата и время окончания интервала */
+  endDateTime: Scalars['DateTime']['input'];
+  /** Дата и время начала интервала */
+  startDateTime: Scalars['DateTime']['input'];
+};
+
+/** Событие о прогрессе */
+export type PulseEventModel = {
+  __typename?: 'PulseEventModel';
+  /** Количество попыток отправки */
+  attemptNumber: Scalars['Int']['output'];
+  /** Идентификатор курса из АС Пульс */
+  catalogItemId: Scalars['UUID']['output'];
+  /** Идентификатор курса */
+  courseId: Scalars['ID']['output'];
+  /** Дата и время создания */
+  createTs: Scalars['DateTime']['output'];
+  /** Текст события */
+  eventBody?: Maybe<Scalars['String']['output']>;
+  /** Время события */
+  eventTime: Scalars['DateTime']['output'];
+  /** Тип события */
+  eventType: PulseEventType;
+  /** Дата и время окончания курса */
+  graduationDate?: Maybe<Scalars['DateTime']['output']>;
+  /** Дата и время последнего изменения */
+  lastModifyTs: Scalars['DateTime']['output'];
+  /** Примечание */
+  note?: Maybe<Scalars['String']['output']>;
+  /** Идентификатор пользователя из АС Пульс */
+  personId?: Maybe<Scalars['UUID']['output']>;
+  /** Значение прогресса (от 0 до 100) */
+  progressValue: Scalars['Int']['output'];
+  /** Идентификатор события по прогрессу студента */
+  pulseEventId: Scalars['ID']['output'];
+  /** Статус события */
+  status: PulseEventStatus;
+  /** Идентификатор студента */
+  studentId: Scalars['ID']['output'];
+};
+
+/** Статусы обработки событий о прогрессе обучения */
+export enum PulseEventStatus {
+  /** Отмена дальнейших попыток обработки */
+  Abort = 'ABORT',
+  /** Обработано */
+  Done = 'DONE',
+  /** Ошибка при обработке */
+  Error = 'ERROR',
+  /** Новое */
+  New = 'NEW',
+  /** Подготовленное к обработке */
+  Prepared = 'PREPARED',
+  /** В работе */
+  Progress = 'PROGRESS',
+  /** Повторная обработка после ошибки */
+  Retry = 'RETRY',
+  /** Пропуск. Обработано, но не отправлено */
+  Skip = 'SKIP'
+}
+
+/** Тип события */
+export enum PulseEventType {
+  /** Изменение прогресса ученика */
+  Changed = 'CHANGED',
+  /** Завершение обучение */
+  Completed = 'COMPLETED'
 }
 
 /** Идентификаторы профессий/ролей/подразделений, полученных из АС Пульс с привязкой к шаблонам траекторий Bootcamp */
@@ -37482,6 +37861,18 @@ export type StudentByStudentCheckInfo = {
   reviewUser?: Maybe<User>;
 };
 
+export type StudentCertificateWithProgressModel = {
+  __typename?: 'StudentCertificateWithProgressModel';
+  /** Шаблон сертификата */
+  certificateTemplate?: Maybe<CertificateTemplateModel>;
+  /** Прогресс по учебной сущности */
+  progressPrecent: Scalars['Int']['output'];
+  /** ID учебной сущности */
+  studyEntityId: Scalars['ID']['output'];
+  /** Тип учебной сущности курс/траектория */
+  studyEntityType?: Maybe<StudyEntityTypeEnum>;
+};
+
 /** Информация об оцененных заданиях в контексте ГКПП(Группы класса по предмету) */
 export type StudentCheckedTaskInfo = {
   __typename?: 'StudentCheckedTaskInfo';
@@ -39522,7 +39913,6 @@ export type StudentMutationsChangeGroupNameArgs = {
 
 
 export type StudentMutationsChangeStudentTaskStatusArgs = {
-  courseId?: InputMaybe<Scalars['ID']['input']>;
   governmentMarkId?: InputMaybe<Scalars['Int']['input']>;
   status: TaskStatusEnum;
   studentTaskId: Scalars['ID']['input'];
@@ -39707,6 +40097,7 @@ export type StudentMutationsFailGoalLevelTestAttemptArgs = {
 
 
 export type StudentMutationsGenerateTrajectoryArgs = {
+  courseId?: InputMaybe<Scalars['ID']['input']>;
   goalId: Scalars['ID']['input'];
 };
 
@@ -39863,7 +40254,6 @@ export type StudentMutationsSaveSelfCheckInStudInfoBtcArgs = {
 export type StudentMutationsSaveStudentAnswerArgs = {
   answerBody?: InputMaybe<Scalars['String']['input']>;
   answersToWidgets?: InputMaybe<Array<AnswerToWidgetInput>>;
-  courseId?: InputMaybe<Scalars['ID']['input']>;
   files: Array<FileInput>;
   incomingAnswerContext?: InputMaybe<IncomingAnswerContextInput>;
   lessonId?: InputMaybe<Scalars['ID']['input']>;
@@ -40616,6 +41006,7 @@ export type StudentQueries = {
   getAggregatedStudentRadarChartData: AggregatedStudentRadarChart;
   /** Получение своих тегов доступа учеником */
   getAllAccessTagsByUserId: Array<BtcAccessTagToUserModel>;
+  getAllEntitiesUserHasAccessTo: Array<Scalars['ID']['output']>;
   /**
    * Возвращает все запланированные Учебные Модули Студента по всем предметам
    * @deprecated Use getStudentStageSubjects. Will be deleted in 0.12.0
@@ -40683,7 +41074,10 @@ export type StudentQueries = {
   getCalendar: Calendar;
   /** Запрос событий за период на которые студент не оставил отзыва */
   getCalendarEventsWithoutFeedback: Array<Maybe<CalendarEvent>>;
-  /** Получение сертификатов доступных студенту */
+  /**
+   * Получение сертификатов доступных студенту
+   * @deprecated  Unused. Will be deleted in a release
+   */
   getCertificatesForStudent?: Maybe<Array<Maybe<IssuedCertificateModel>>>;
   /**
    * S21. Публичный профиль студента. Получение класса в котором авторизован студент по его логину
@@ -41012,6 +41406,8 @@ export type StudentQueries = {
   getStudentBullyingTooltipViewStatus: Scalars['Boolean']['output'];
   /** S21 получение студентов которые выполняют/выполнили тот же проект по проекту пользователя */
   getStudentByProjectAndCampus: StudentsInSameProjectByCampusModel;
+  /** Получение сертификатов доступных студенту */
+  getStudentCertificate?: Maybe<CertificatesForStudentModel>;
   /** Получение процессов код ревью студенческого проекта по его id */
   getStudentCodeReviewByGoalId: StudentCodeReviewsWithCountRound;
   /** Получение процессов код-ревью студенческого проекта, проводимые другими студентами */
@@ -41329,6 +41725,11 @@ export type StudentQueriesGetAggregatedStudentRadarChartDataArgs = {
   academicYearId?: InputMaybe<Scalars['ID']['input']>;
   studyPeriodId?: InputMaybe<Scalars['ID']['input']>;
   userId?: InputMaybe<Scalars['UUID']['input']>;
+};
+
+
+export type StudentQueriesGetAllEntitiesUserHasAccessToArgs = {
+  entityType: BtcAccessTagsEntityTypeModel;
 };
 
 
@@ -41703,6 +42104,7 @@ export type StudentQueriesGetModifyTimeByTaskArgs = {
 
 
 export type StudentQueriesGetModuleByIdArgs = {
+  courseId?: InputMaybe<Scalars['ID']['input']>;
   goalId: Scalars['ID']['input'];
 };
 
@@ -41820,6 +42222,7 @@ export type StudentQueriesGetPersonalObjectivesDetailedByStatusesArgs = {
 
 
 export type StudentQueriesGetPersonalTrajectoryArgs = {
+  courseId?: InputMaybe<Scalars['ID']['input']>;
   goalId?: InputMaybe<Scalars['ID']['input']>;
   taskId?: InputMaybe<Scalars['ID']['input']>;
 };
@@ -43718,6 +44121,26 @@ export type StudentTraffic = {
   startDate: Scalars['Date']['output'];
 };
 
+export type StudentTrajectoryProgressModel = {
+  __typename?: 'StudentTrajectoryProgressModel';
+  /** Фактическая дата окончания траектории */
+  factEndDate?: Maybe<Scalars['DateTime']['output']>;
+  /** Фактическая дата начала траектории */
+  factStatDate?: Maybe<Scalars['DateTime']['output']>;
+  /** Плановая дата окончания траектории */
+  planEndDate: Scalars['DateTime']['output'];
+  /** Плановая дата начала траектории */
+  planStatDate: Scalars['DateTime']['output'];
+  /** Прогресс по траектории в процентах */
+  progressByTrajectory: Scalars['Int']['output'];
+  /** ID ученика */
+  studentId: Scalars['UUID']['output'];
+  /** ID траектории ученика */
+  trajectoryId: Scalars['ID']['output'];
+  /** Наименование траектории ученика */
+  trajectoryName: Scalars['String']['output'];
+};
+
 /** Траектории назначенные на студента */
 export type StudentTrajectorySlug = {
   __typename?: 'StudentTrajectorySlug';
@@ -43844,16 +44267,22 @@ export type StudentWhiteListInputModel = {
   mobilePhone?: InputMaybe<Scalars['String']['input']>;
   /** Описание */
   note?: InputMaybe<Scalars['String']['input']>;
+  /** Идентификатор student-whitelist-а */
+  studentWhitelistId?: InputMaybe<Scalars['ID']['input']>;
   /** Теги доступа */
   tagIds?: InputMaybe<Array<Scalars['ID']['input']>>;
   /** Идентификатор шаблона траектории */
   trajectoryTemplateId?: InputMaybe<Scalars['ID']['input']>;
   /** Значение метки utm_source */
   utmSource?: InputMaybe<Scalars['String']['input']>;
+  /** Метка utm_source */
+  utmSourceInputModel?: InputMaybe<UtmSourceInputModel>;
 };
 
 export type StudentWhiteListModel = {
   __typename?: 'StudentWhiteListModel';
+  /** Теги доступа */
+  accessTags?: Maybe<Array<BtcAccessTagModel>>;
   /** Признак разрешения */
   allowed: Scalars['Boolean']['output'];
   /** Дата и время создания */
@@ -43870,6 +44299,8 @@ export type StudentWhiteListModel = {
   stageGroupId?: Maybe<Scalars['ID']['output']>;
   /** Имя класса */
   stageGroupName?: Maybe<Scalars['String']['output']>;
+  /** Идентификатор элемента */
+  studentWhitelistId?: Maybe<Scalars['ID']['output']>;
   /** Имя траектории */
   trajectoryName?: Maybe<Scalars['String']['output']>;
   /** Идентификатор шаблона траектории */
@@ -44055,6 +44486,13 @@ export type StudyActivity = {
   /** Система оценивания */
   schoolMarks?: Maybe<Array<Maybe<SchoolMark>>>;
 };
+
+export enum StudyEntityTypeEnum {
+  /** Курс */
+  Course = 'COURSE',
+  /** Шаблон траектории */
+  TrajectoryTemplate = 'TRAJECTORY_TEMPLATE'
+}
 
 /** Учебный Модуль без персональной информации */
 export type StudyModule = {
@@ -48810,7 +49248,6 @@ export type TeacherMutationsChangePersonalPlanWithCheckingForBtcArgs = {
 
 
 export type TeacherMutationsChangeStudentGenericTaskStatusArgs = {
-  courseId?: InputMaybe<Scalars['ID']['input']>;
   criteriaEvaluations: Array<EvaluatedTaskCriterionInput>;
   governmentMarkId?: InputMaybe<Scalars['Int']['input']>;
   studentTaskId: Scalars['ID']['input'];
@@ -49969,6 +50406,10 @@ export type TeacherQueries = {
   getStudentEffortEstimation?: Maybe<StudentEffortEstimation>;
   /** Получить фидбек ученика по опредлённому заданию или null если его нет */
   getStudentFeedback?: Maybe<Feedback>;
+  /** Получение идентификатора ученика учителем по иденификатору пользователя */
+  getStudentIdByUserIdBtc: Scalars['UUID']['output'];
+  /** Получение идентификатора ученика мастер-учителем по иденификатору пользователя */
+  getStudentIdByUserIdForMasterTeacherBtc: Scalars['UUID']['output'];
   /**
    * Возвращает Студента В Подгруппе с детализацией в рамках конкретного Класса по Предмету
    * по Идентификатору (stage_subject_subgroup_students.stage_subject_subgroup_student_id)
@@ -51324,6 +51765,16 @@ export type TeacherQueriesGetStudentEffortEstimationArgs = {
 export type TeacherQueriesGetStudentFeedbackArgs = {
   studentId: Scalars['UUID']['input'];
   taskId: Scalars['ID']['input'];
+};
+
+
+export type TeacherQueriesGetStudentIdByUserIdBtcArgs = {
+  userId: Scalars['UUID']['input'];
+};
+
+
+export type TeacherQueriesGetStudentIdByUserIdForMasterTeacherBtcArgs = {
+  userId: Scalars['UUID']['input'];
 };
 
 
@@ -53302,6 +53753,7 @@ export type TrajectoryMutationsSavePulseJobCodeMapperArgs = {
 
 
 export type TrajectoryMutationsSaveTrajectoryTemplateArgs = {
+  certificateTemplate?: InputMaybe<CertificateTemplateInputModel>;
   trajectoryTemplate: TrajectoryTemplateInputModel;
 };
 
@@ -53313,6 +53765,7 @@ export type TrajectoryMutationsUpdateTrajectoryArgs = {
 
 
 export type TrajectoryMutationsUpdateTrajectoryTemplateArgs = {
+  certificateTemplate?: InputMaybe<CertificateTemplateInputModel>;
   trajectoryTemplate: TrajectoryTemplateInputModel;
 };
 
@@ -53459,8 +53912,15 @@ export type TrajectorySimpleInfo = {
 /** Шаблон траектории Bootcamp */
 export type TrajectoryTemplate = {
   __typename?: 'TrajectoryTemplate';
-  /** Свидетельство о прохождение траектории */
+  /** Список тегов доступа, назначенных на шаблон траектории */
+  accessTags?: Maybe<Array<BtcAccessTagModel>>;
+  /**
+   * Свидетельство о прохождение траектории
+   * @deprecated Unused, will be deleted in realise
+   */
   certificate?: Maybe<CertificateOfParticipation>;
+  /** Шаблон сертификата для выдачи */
+  certificateTemplate?: Maybe<CertificateTemplateModel>;
   /** Дата и время создания траектории */
   createTs: Scalars['DateTime']['output'];
   /** Электронная почта */
@@ -53546,6 +54006,8 @@ export type TrajectoryTemplateGoalInputModel = {
 
 /** Шаблон траектории Bootcamp */
 export type TrajectoryTemplateInputModel = {
+  /** Список тегов доступа, назначаемых на шаблон траектории */
+  accessTags?: InputMaybe<Array<BtcAccessTagInputModel>>;
   /** Сертификаты выдаваемые при прохождение траектории */
   certificate?: InputMaybe<CertificateInputModel>;
   /** Дата и время создания шаблона траектории */
@@ -56158,6 +56620,15 @@ export type UtmSourceFilterInputModel = {
   paging: PagingInput;
   /** Фильтр по названию utm-метки */
   textSearch?: InputMaybe<Scalars['String']['input']>;
+};
+
+export type UtmSourceInputModel = {
+  /** Флаг необхордимости ввода invite-кода при входе */
+  isTwoFactor: Scalars['Boolean']['input'];
+  /** Идентификатор UTM-метки */
+  utmId?: InputMaybe<Scalars['ID']['input']>;
+  /** Имя UTM-метки */
+  utmName: Scalars['String']['input'];
 };
 
 export type UtmSourceModel = {
