@@ -5747,6 +5747,8 @@ export type BtcCourseQueries = {
   getMyTrajectories: Array<Maybe<BtcStudentTrajectoryModel>>;
   /** Получить траекторию назначенную на текущего пользователя по идентификатору траектории */
   getMyTrajectoryByTrajectoryId?: Maybe<BtcStudentTrajectoryModel>;
+  /** Получение плановых дат начала и окончания назначаемого курса или траектории */
+  getStudyPlanDates: BtcStudyAssignDateModel;
   /** Получение траектории по идентификатору */
   getTrajectoryById: BtcTrajectoryModel;
 };
@@ -5824,6 +5826,13 @@ export type BtcCourseQueriesGetMyCourseByCourseIdArgs = {
 
 export type BtcCourseQueriesGetMyTrajectoryByTrajectoryIdArgs = {
   trajectoryId: Scalars['ID']['input'];
+};
+
+
+export type BtcCourseQueriesGetStudyPlanDatesArgs = {
+  assignPlanEndDate?: InputMaybe<Scalars['Date']['input']>;
+  assignPlanStartDate?: InputMaybe<Scalars['Date']['input']>;
+  studyItemId: Scalars['ID']['input'];
 };
 
 
@@ -6118,6 +6127,8 @@ export type BtcStudentTrajectoryModel = {
   creationInfo: BtcRowSystemInfo;
   /** Признак завершения траектории */
   isCompleted: Scalars['Boolean']['output'];
+  /** Признак обязательности выполнения траектории */
+  isMandatory?: Maybe<Scalars['Boolean']['output']>;
   /** Признак ручного завершения траектории */
   isManualCompleted?: Maybe<Scalars['Boolean']['output']>;
   /** Системная информация по назначению траектории на студента. Кто и когда изменил. */
@@ -6147,10 +6158,23 @@ export type BtcStudyAccessLimitModel = {
   accessLimitDuration?: Maybe<Scalars['Int']['output']>;
 };
 
+/** Плановые даты начала и окончания курса/траектории */
+export type BtcStudyAssignDateModel = {
+  __typename?: 'BtcStudyAssignDateModel';
+  /** Плановая дата окончания */
+  planEndDate: Scalars['Date']['output'];
+  /** Плановая дата начала */
+  planStartDate: Scalars['Date']['output'];
+  /** Идентификатор назначаемого курса/траектории */
+  studyId: Scalars['ID']['output'];
+};
+
 /** Данные для назначения траектории/курса */
 export type BtcStudyAssignmentInputModel = {
   /** Режим назначения курса */
   assignmentMode: BtcStudyAssignmentMode;
+  /** Обязательность траектории */
+  isMandatory?: InputMaybe<Scalars['Boolean']['input']>;
   /** Плановая дата окончания прохождения курса */
   planEndDate?: InputMaybe<Scalars['Date']['input']>;
   /** Плановая дата начала прохождения курса */
